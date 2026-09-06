@@ -35,8 +35,12 @@ HTTPS_TRANSPORTS = config.HTTPS_PROVIDERS
 
 
 def send(subject: str, html_body: str, text_body: str,
-         *, inline_images: dict[str, bytes] | None = None) -> None:
-    """Send a multipart/alternative message to APPROVAL_EMAIL."""
+         *, inline_images: dict[str, bytes] | None = None) -> str:
+    """Send a multipart/alternative message to APPROVAL_EMAIL.
+
+    Returns the provider's message id where there is one, so a run can record
+    what it sent. SMTP has none and returns "".
+    """
     mode = config.email_transport()
     if mode in HTTPS_TRANSPORTS:
         if inline_images:
@@ -51,10 +55,11 @@ def send(subject: str, html_body: str, text_body: str,
             f"EMAIL_TRANSPORT={mode!r} is not one of: smtp, "
             + ", ".join(HTTPS_TRANSPORTS) + ", auto."
         )
-    return _send_smtp(subject, html_body, text_body, inline_images=inline_images)
+    _send_smtp(subject, html_body, text_body, inline_images=inline_images)
+    return ""
 
 
-def _send_https(provider: str, subject: str, html_body: str, text_body: str) -> None:
+def _send_https(provider: str, subject: str, html_body: str, text_body: str) -> str:
     """Send over an HTTPS email API. One request, no mailbox, no port 587."""
     import requests
 
@@ -105,6 +110,16 @@ def _send_https(provider: str, subject: str, html_body: str, text_body: str) -> 
     if not resp.ok:
         # The body names the real problem (unverified sender, unknown domain).
         raise MailError(f"{provider} {resp.status_code}: {resp.text[:400]}")
+
+    try:
+        body = resp.json()
+    except ValueError:
+        return ""
+    if isinstance(body, dict):
+        for key in ("id", "messageId", "MessageID", "message-id"):
+            if body.get(key):
+                return str(body[key])
+    return ""
 
 
 def _send_smtp(subject: str, html_body: str, text_body: str,

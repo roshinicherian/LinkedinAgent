@@ -92,8 +92,9 @@ def main() -> int:
         print(msg.text_body())
         return 0
 
-    mailer.send(msg.subject(), msg.html_body(), msg.text_body())
-    print(f"Approval email sent to {config.require('APPROVAL_EMAIL')}")
+    msg_id = mailer.send(msg.subject(), msg.html_body(), msg.text_body())
+    print(f"Approval email sent to {config.require('APPROVAL_EMAIL')} "
+          f"via {config.email_transport()}" + (f" (id {msg_id})" if msg_id else ""))
     print(f"Subject: {msg.subject()}")
     print("\nNow run:  python3 scripts/await_approval.py", args.manifest)
     return 0
