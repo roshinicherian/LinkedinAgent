@@ -77,8 +77,10 @@ hook (one line, survives the 210-char fold) → tension or a specific moment →
 the insight with a concrete mechanic → what it means for the reader → one
 question answerable in a sentence.
 
-900–1,300 characters. Never above 1,600. No links in the body — they go in the
-first comment. Max 3 hashtags, lowercase, at the very end. No emoji in the hook,
+900–1,300 characters, and 1,600 is the craft ceiling — a post carrying its
+sources runs longer, and the gate advises rather than blocks. A link in the
+body costs reach, so keep it only when the source needs to be clickable.
+Max 3 hashtags, lowercase, at the very end. No emoji in the hook,
 max one elsewhere and only if it earns its place.
 
 ## 7. Brand assets

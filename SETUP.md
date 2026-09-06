@@ -115,7 +115,7 @@ You do not need IMAP at all. Approval happens on a **published approval page**:
    `SMTP_*` is for, and it needs no mailbox reading).
 2. You open the link on your phone. The page shows the resolved publish target,
    both variants rendered with LinkedIn's 210-character "see more" fold drawn in,
-   the safety-gate results, the sources, and the first comment.
+   the safety-gate results, and the sources.
 3. You tap **Approve A**, **Approve B**, **Skip**, or paste your own copy. It
    asks you to confirm, because approving publishes for real.
 4. Your decision is written to the page's own store.
@@ -135,7 +135,7 @@ blue so assets read as yours), handle `roshini-cherian`. Change either any time.
 
 ## 6. Then run, in order
 
-    python3 scripts/check_setup.py            # all eight settings green?
+    python3 scripts/check_setup.py            # settings green? which transport?
     python3 scripts/send_test_email.py        # one email lands in your inbox
     python3 scripts/dry_run_channel.py        # publishes nothing, ever
 
@@ -143,6 +143,29 @@ The last one prints the connected channel's name, ID and type, and refuses to
 continue unless exactly one LinkedIn channel is connected, its ID matches
 `LINKEDIN_PLATFORM_ID` character-for-character, and it is a personal profile.
 **Confirm the name it prints is you.** Only then does anything get published.
+
+### Email has to go out over HTTPS
+
+The weekly Routines fire fresh Claude sessions, and outbound TCP there is
+HTTPS-only: port 587 is accepted by the local proxy and then reset at egress.
+SMTP therefore cannot deliver from a Routine however good the Gmail App
+Password is. Send over an email API instead — two settings:
+
+    EMAIL_PROVIDER=resend        # or brevo, postmark, mailgun
+    EMAIL_API_KEY=<the key>
+
+`APPROVAL_FROM` must be an address that provider will send as:
+
+| Provider | Free tier | Sender you can use immediately |
+|----------|-----------|--------------------------------|
+| **Resend** | 3,000/month | `onboarding@resend.dev` to your own account address, no domain needed |
+| Brevo | 300/day | your Gmail address, once you confirm it as a sender |
+| Postmark | 100/month | your Gmail address, once you confirm the sender signature |
+| Mailgun | trial | sandbox domain, to authorised recipients only (also set `MAILGUN_DOMAIN`) |
+
+The SMTP settings stay in place and still work from any machine with port 587
+open — `EMAIL_TRANSPORT=smtp` forces that road. Steps 1 and 3, and the safety
+gate, run fine in a remote session either way.
 
 ---
 

@@ -56,14 +56,16 @@ class Channel:
 
 def _headers() -> dict[str, str]:
     return {
-        "Authorization": f"Bearer {config.require('PUBLORA_API_KEY')}",
+        "x-publora-key": config.require("PUBLORA_API_KEY"),
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
 
 
 def _base() -> str:
-    return (config.get("PUBLORA_BASE_URL") or "https://api.publora.com").rstrip("/")
+    """Base URL including Publora's /api/v1 prefix."""
+    root = (config.get("PUBLORA_BASE_URL") or "https://api.publora.com").rstrip("/")
+    return root if root.endswith("/api/v1") else f"{root}/api/v1"
 
 
 def _first(d: dict[str, Any], *keys: str) -> Any:
@@ -96,6 +98,15 @@ def _classify(raw_type: str, blob: dict[str, Any]) -> str:
     for key in ("isPersonal", "is_personal", "isProfile", "is_profile", "isMember"):
         if blob.get(key) is True:
             return "personal"
+
+    # Publora's platform-connections payload carries no type field, but the
+    # profile URL says it plainly: /in/ is a member, /company/ is a page.
+    url = str(_first(blob, "profileUrl", "profile_url", "url", "permalink") or "").lower()
+    if url:
+        if "/company/" in url or "/showcase/" in url or "/school/" in url:
+            return "organisation"
+        if "/in/" in url:
+            return "personal"
     return "unknown"
 
 
@@ -103,6 +114,9 @@ def _normalise(blob: dict[str, Any]) -> Channel:
     pid = _first(blob, "platformId", "platform_id", "id", "channelId", "channel_id")
     name = _first(blob, "name", "displayName", "display_name", "title", "handle", "username")
     platform = _first(blob, "platform", "network", "provider", "type") or ""
+    # Publora identifies the network in the ID itself: "linkedin-yuV7gdcpIY".
+    if not platform and pid and "-" in str(pid):
+        platform = str(pid).split("-", 1)[0]
     raw_type = _first(
         blob, "accountType", "account_type", "channelType", "channel_type",
         "entityType", "entity_type", "kind", "subtype",
@@ -119,7 +133,7 @@ def _normalise(blob: dict[str, Any]) -> Channel:
 
 def list_channels_raw() -> Any:
     """Return the untouched channels payload, for shape inspection."""
-    url = f"{_base()}/v1/channels"
+    url = f"{_base()}/platform-connections"
     try:
         resp = requests.get(url, headers=_headers(), timeout=TIMEOUT)
     except requests.RequestException as exc:
@@ -139,7 +153,7 @@ def list_channels_raw() -> Any:
 def list_channels() -> list[Channel]:
     payload = list_channels_raw()
     if isinstance(payload, dict):
-        for key in ("channels", "data", "results", "items", "accounts"):
+        for key in ("connections", "channels", "data", "results", "items", "accounts"):
             if isinstance(payload.get(key), list):
                 payload = payload[key]
                 break
@@ -205,29 +219,48 @@ def resolve_target() -> Channel:
     return channel
 
 
+# Publora rejects (or clamps) a scheduledTime under five minutes out, so the
+# soonest honest "publish now" is a slot just past that edge.
+SOONEST_LEAD_MINUTES = 6
+
+
+def soonest_slot() -> str:
+    """The earliest scheduledTime Publora will accept, ISO 8601 UTC."""
+    from datetime import datetime, timedelta, timezone
+    when = datetime.now(timezone.utc) + timedelta(minutes=SOONEST_LEAD_MINUTES)
+    return when.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def publish(
     draft_text: str,
     *,
     scheduled_time: str | None = None,
     media_urls: list[str] | None = None,
     dry_run: bool = False,
+    draft: bool = False,
 ) -> dict[str, Any]:
-    """Publish (or schedule) a post, after re-running the target guard."""
+    """Publish (or schedule) a post, after re-running the target guard.
+
+    Publora has no publish-now: a create-post WITHOUT a scheduledTime is filed
+    as a draft and never goes out. So "immediately" here means the soonest time
+    the API will accept — SOONEST_LEAD_MINUTES from now — and the caller is told
+    what that time was. Only `draft=True` asks for a draft, and it says so.
+    """
     channel = resolve_target()  # re-verified immediately before every send
 
     body: dict[str, Any] = {
         "content": draft_text,
-        "platforms": [{"platform": "linkedin", "platformId": channel.platform_id}],
+        "platforms": [channel.platform_id],
     }
-    if scheduled_time:
-        body["scheduledTime"] = scheduled_time
+    if not draft:
+        body["scheduledTime"] = scheduled_time or soonest_slot()
     if media_urls:
         body["mediaUrls"] = list(media_urls)
 
     if dry_run:
         return {"dry_run": True, "target": asdict(channel) | {"raw": "<omitted>"}, "body": body}
 
-    url = f"{_base()}/v1/posts"
+    url = f"{_base()}/create-post"
     try:
         resp = requests.post(url, headers=_headers(), json=body, timeout=TIMEOUT)
     except requests.RequestException as exc:
@@ -237,12 +270,33 @@ def publish(
     return resp.json()
 
 
-def comment(post_urn_or_id: str, text: str) -> dict[str, Any]:
-    """Post the sources comment on our own post."""
+def release_draft(post_group_id: str, scheduled_time: str | None = None) -> dict[str, Any]:
+    """Move a post Publora is holding as a draft to scheduled, so it goes out.
+
+    Used when a create-post landed as a draft. Defaults to the soonest slot the
+    API accepts. Re-runs the target guard first, like every other send.
+    """
     resolve_target()
-    url = f"{_base()}/v1/comments"
-    body = {"postId": post_urn_or_id, "content": text}
-    resp = requests.post(url, headers=_headers(), json=body, timeout=TIMEOUT)
+    url = f"{_base()}/update-post/{post_group_id}"
+    body = {"status": "scheduled", "scheduledTime": scheduled_time or soonest_slot()}
+    try:
+        resp = requests.put(url, headers=_headers(), json=body, timeout=TIMEOUT)
+    except requests.RequestException as exc:
+        raise PubloraError(f"Release request failed: {exc}") from exc
     if not resp.ok:
-        raise PubloraError(f"Publora {resp.status_code} on comment: {resp.text[:400]}")
+        raise PubloraError(f"Publora {resp.status_code} on release: {resp.text[:400]}")
     return resp.json()
+
+
+def get_post(post_group_id: str) -> dict[str, Any]:
+    """Read one post back — the only way to know what actually happened."""
+    url = f"{_base()}/get-post/{post_group_id}"
+    resp = requests.get(url, headers=_headers(), timeout=TIMEOUT)
+    if not resp.ok:
+        raise PubloraError(f"Publora {resp.status_code} on get-post: {resp.text[:400]}")
+    return resp.json()
+
+
+# There is deliberately no comment() here. Publora cannot create comments (its
+# LinkedIn comment API is read-only), so the sources that used to go out as a
+# first comment are part of the post body, editable on the approval page.

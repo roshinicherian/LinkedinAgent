@@ -19,11 +19,18 @@ until the credentials in it exist.
 | **Wed 20:00** | **Publishes the approval page and emails you the link** |
 | Thu 06:00 | Reminder if nothing decided yet |
 | Thu 06:30 | Hard cutoff. **No decision = no post.** |
-| **Thu 07:45** | **Publish + first comment with sources** |
+| **Thu 07:45** | **Publish** (sources travel in the post body) |
 | Fri | Engager analytics, warm-thread flags, reply drafts (all emailed for approval) |
 
 The schedule runs as four Routines — see [`SCHEDULE.md`](SCHEDULE.md), which
 also carries the daylight-saving change due 4 October 2026.
+
+There is no first comment. Publora cannot create comments — its LinkedIn comment
+API is read-only — so the sources sit at the end of the post body, editable on
+the approval page like the rest of the copy. Two craft rules moved with them:
+length and a body link are now advisories that print but never block, and the
+gate only refuses a post above LinkedIn's own 3,000-character limit. A URL is
+still client leakage unless it is one this run verified.
 
 ## The four non-negotiables, as code
 
@@ -88,7 +95,7 @@ Under both modes:
 ```
 lib/
   config.py           env + .env loading; secrets never printed
-  publora_client.py   channel guard + publish + first comment
+  publora_client.py   channel guard + publish
   pixfaro_client.py   illustrations; premium-model + prompt guards
   mailer.py           SMTP send, IMAP poll, quote-stripping, command parsing
   safety.py           the five checks + sanitiser

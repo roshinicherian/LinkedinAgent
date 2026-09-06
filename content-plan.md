@@ -8,7 +8,7 @@ hook formula repeats inside 8 weeks (check `post-log.md` before drafting).
 - Wed 20:00 AEST — draft approval email `[LI-DRAFT]`
 - Thu 06:00 AEST — `[REMINDER]` if no reply
 - Thu 06:30 AEST — hard cutoff. No reply = no post. Never post on silence.
-- Thu 07:45 AEST — publish + first comment with sources
+- Thu 07:45 AEST — publish (sources are in the body, editable before approval)
 
 **Every week is researched fresh.** Stats are re-verified in-run; nothing is
 carried over from a previous week without a new live search. Angles are drawn

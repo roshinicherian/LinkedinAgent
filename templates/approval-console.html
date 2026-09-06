@@ -212,11 +212,6 @@
   .src .who{font-weight:600}
   .src .geo{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
             text-transform:uppercase;letter-spacing:.08em}
-  .comment{
-    white-space:pre-wrap;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    font-size:13.5px;line-height:1.5;background:var(--surface-2);
-    border:1px solid var(--line);border-radius:8px;padding:13px;overflow-wrap:anywhere;
-  }
   ul.notes{margin:0;padding-left:19px;display:flex;flex-direction:column;gap:8px;
            font-size:13.5px;color:var(--ink-2)}
 
@@ -291,11 +286,6 @@
   <div class="variants" id="variants"></div>
 
   <div class="panel">
-    <h2>First comment, posted immediately after</h2>
-    <div class="comment" id="comment"></div>
-  </div>
-
-  <div class="panel">
     <h2>Sources</h2>
     <div id="sources"></div>
   </div>
@@ -334,7 +324,14 @@ So the work moved rather than disappeared. I spend longer on briefs now and almo
 
 What's the one line in your brief that changes the output most?
 
-#b2bmarketing #aimarketing` },
+#b2bmarketing #aimarketing
+
+Source for the adoption figure, if you want to dig in:
+
+Australian Bureau of Statistics, Characteristics of Australian Business 2024-25 (Business Characteristics Survey, ~7,000 businesses):
+https://www.abs.gov.au/media-centre/media-releases/business-adoption-artificial-intelligence-accelerates-2024-25
+
+The practical version of the brief change: I now write down the three things a buyer is most likely to push back on before I write anything else. It's the only part of the brief I won't let AI draft for me.` },
     { label: "B", title: "The Forty-Second Edit", formula: "F16 Status-Strip Humility", goal: "likes / warmth", stats: "1 verified stat",
       text: `Ten years of writing B2B copy, and the best edit I've ever been handed took about forty seconds and came from someone who doesn't write for a living.
 
@@ -352,18 +349,20 @@ AI doesn't write my first drafts anymore when a specialist will read them. It in
 
 Who's the person outside marketing whose edits you trust most?
 
-#b2bmarketing #manufacturing` }
+#b2bmarketing #manufacturing
+
+Source for the adoption figure, if you want to dig in:
+
+Australian Bureau of Statistics, Characteristics of Australian Business 2024-25 (Business Characteristics Survey, ~7,000 businesses):
+https://www.abs.gov.au/media-centre/media-releases/business-adoption-artificial-intelligence-accelerates-2024-25
+
+The practical version of the brief change: I now write down the three things a buyer is most likely to push back on before I write anything else. It's the only part of the brief I won't let AI draft for me.` }
   ],
   checks: [
     ["Client scrub","pass"],["Negativity","pass"],["Politics / religion","pass"],
     ["Stats verified","pass"],["Craft","pass"]
   ],
-  comment: `Source for the adoption figure, if you want to dig in:
 
-Australian Bureau of Statistics, Characteristics of Australian Business 2024-25 (Business Characteristics Survey, ~7,000 businesses):
-https://www.abs.gov.au/media-centre/media-releases/business-adoption-artificial-intelligence-accelerates-2024-25
-
-The practical version of the brief change: I now write down the three things a buyer is most likely to push back on before I write anything else. It's the only part of the brief I won't let AI draft for me.`,
   sources: [{
     who: "Australian Bureau of Statistics",
     what: "Characteristics of Australian Business, 2024–25 (Business Characteristics Survey, ~7,000 businesses). 12% of Australian businesses used AI in 2024–25, up from 1% in 2021–22; IT, media and telcos led adoption.",
@@ -388,8 +387,6 @@ let db = null, decided = null;
 $("gate").innerHTML = RUN.checks.map(([n, s]) =>
   `<span class="check"><span class="dot${s === "pass" ? "" : " stop"}"></span>` +
   `${n} <b>${s.toUpperCase()}</b></span>`).join("");
-
-$("comment").textContent = RUN.comment;
 
 $("sources").innerHTML = RUN.sources.map(s =>
   `<div class="src"><span class="who">${s.who}</span>` +
@@ -471,7 +468,7 @@ function advise(text) {
   if (hook.trim().endsWith("?")) out.push("Hook is a question \u2014 move it to the close");
   if (hook.length > FOLD) out.push(`Hook is ${hook.length} chars \u2014 it won't survive the ${FOLD}-char fold`);
   if (hook && hook === hook.toUpperCase() && /[A-Z]/.test(hook)) out.push("Hook is all caps");
-  if (/https?:\/\/|www\./.test(text)) out.push("Link in the body \u2014 links belong in the first comment");
+  if (/https?:\/\/|www\./.test(text)) out.push("Link in the body \u2014 LinkedIn suppresses reach on these (advisory)");
   const tags = text.match(/(?:^|\s)#\w+/g) || [];
   if (tags.length > 3) out.push(`${tags.length} hashtags \u2014 the cap is 3`);
   if (/\bit(?:'s| is) not\b[^.?!]{3,60}\bit(?:'s| is)\b/i.test(text))
@@ -566,7 +563,7 @@ function paint(d) {
       (d.edited
         ? "Your wording is published as written \u2014 the safety gate runs on it, but nothing is rewritten. "
         : "") +
-      "The agent publishes it, posts the sources comment, and emails you the live link.";
+      "The agent publishes it and emails you the live link.";
   }
   document.querySelectorAll(".editor,.titlein").forEach(t => { t.readOnly = true; });
   $("weekinput").readOnly = true;

@@ -51,7 +51,9 @@ def main() -> int:
     # bold is applied only on the way out.
     text = safety.sanitise(text)
     plain = safety.compose(title, text, include_title)
-    rep = safety.run_gate(plain, verified if uses_stats else [], personal)
+    src_urls, cite_nums = safety.source_licences(run.get("sources", []))
+    rep = safety.run_gate(plain, verified if uses_stats else [], personal,
+                          src_urls, cite_nums)
     print("SAFETY GATE\n" + rep.render())
     if not rep.passed:
         print("\nBLOCKED — not publishing, and not rewriting. "
@@ -71,15 +73,25 @@ def main() -> int:
     res = pub.publish(final, scheduled_time=None if args.now else run["scheduled_iso"],
                       media_urls=run.get("media_urls") or None)
     url = res.get("url") or res.get("postUrl") or ""
-    print("Published." if args.now else f"Scheduled for {run['scheduled_iso']}.")
+    when = res.get("scheduledTime") or ""
+    pid = res.get("postGroupId") or ""
+    print(f"Sent to Publora as {pid or '<no id returned>'}, due {when or '<no time returned>'}.")
+    for w in res.get("warnings") or []:
+        print(f"  warning: {w.get('code', '')} {w.get('message', '')}")
 
-    pid = res.get("id") or res.get("postId")
-    if run.get("first_comment") and pid:
+    # Publora files a post without a scheduledTime as a draft that never goes
+    # out, so confirm what it actually holds rather than trusting the 200.
+    if pid:
         try:
-            pub.comment(pid, run["first_comment"])
-            print("First comment posted.")
+            state = pub.get_post(pid).get("post") or {}
+            status = state.get("status", "unknown")
+            print(f"Publora status: {status}")
+            if status == "draft":
+                print("STILL A DRAFT — nothing will go out. Release it with "
+                      f"pub.release_draft({pid!r}).")
+                return 1
         except pub.PubloraError as exc:
-            print(f"Post is live but the first comment failed: {exc}")
+            print(f"Could not read the post back: {exc}")
 
     stats = run.get("sources", []) if uses_stats else []
     postlog.append_run(

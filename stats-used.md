@@ -20,3 +20,4 @@ dated explicitly in the post or cut; max two per post.
   and the primary URL is supplied for Roshini to click. If neither is possible,
   the claim is cut and the point rewritten qualitatively — never softened into
   "studies show".
+| 2026-09-06 | 12% of Australian businesses used AI in 2024–25, up from 1% in 2021–22; IT, media and telcos led adoption | Australian Bureau of Statistics — Characteristics of Australian Business, 2024–25 (Business Characteristics Survey, ~7,000 businesses) | 2026 | Australia | https://www.abs.gov.au/media-centre/media-releases/business-adoption-artificial-intelligence-accelerates-2024-25 | live search |

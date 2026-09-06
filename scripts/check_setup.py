@@ -28,8 +28,17 @@ def main() -> int:
             shown = "<set, hidden>" if info["present"] else ""
         print(f"  [{mark:>7}] {key:<{width}}  {tag:<8} {shown}")
 
-    mode = config.approval_mode()
+    transport = config.email_transport()
     print("\n" + "-" * 66)
+    if transport in config.HTTPS_PROVIDERS:
+        print(f"Email transport: {transport.upper()} over HTTPS — no SMTP port needed.")
+    else:
+        print("Email transport: SMTP on port 587.")
+        print("  A Claude Code session allows HTTPS only and resets 587 at egress,")
+        print("  so set EMAIL_PROVIDER + EMAIL_API_KEY to send from a Routine.")
+
+    mode = config.approval_mode()
+    print("-" * 66)
     if mode == "web":
         print("Approval mode: WEB — you approve on a published page.")
         print("  No IMAP password needed. SMTP is used only to send you the link.")
