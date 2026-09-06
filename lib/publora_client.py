@@ -219,22 +219,41 @@ def resolve_target() -> Channel:
     return channel
 
 
+# Publora rejects (or clamps) a scheduledTime under five minutes out, so the
+# soonest honest "publish now" is a slot just past that edge.
+SOONEST_LEAD_MINUTES = 6
+
+
+def soonest_slot() -> str:
+    """The earliest scheduledTime Publora will accept, ISO 8601 UTC."""
+    from datetime import datetime, timedelta, timezone
+    when = datetime.now(timezone.utc) + timedelta(minutes=SOONEST_LEAD_MINUTES)
+    return when.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def publish(
     draft_text: str,
     *,
     scheduled_time: str | None = None,
     media_urls: list[str] | None = None,
     dry_run: bool = False,
+    draft: bool = False,
 ) -> dict[str, Any]:
-    """Publish (or schedule) a post, after re-running the target guard."""
+    """Publish (or schedule) a post, after re-running the target guard.
+
+    Publora has no publish-now: a create-post WITHOUT a scheduledTime is filed
+    as a draft and never goes out. So "immediately" here means the soonest time
+    the API will accept — SOONEST_LEAD_MINUTES from now — and the caller is told
+    what that time was. Only `draft=True` asks for a draft, and it says so.
+    """
     channel = resolve_target()  # re-verified immediately before every send
 
     body: dict[str, Any] = {
         "content": draft_text,
         "platforms": [channel.platform_id],
     }
-    if scheduled_time:
-        body["scheduledTime"] = scheduled_time
+    if not draft:
+        body["scheduledTime"] = scheduled_time or soonest_slot()
     if media_urls:
         body["mediaUrls"] = list(media_urls)
 
@@ -248,6 +267,33 @@ def publish(
         raise PubloraError(f"Publish request failed: {exc}") from exc
     if not resp.ok:
         raise PubloraError(f"Publora {resp.status_code} on publish: {resp.text[:400]}")
+    return resp.json()
+
+
+def release_draft(post_group_id: str, scheduled_time: str | None = None) -> dict[str, Any]:
+    """Move a post Publora is holding as a draft to scheduled, so it goes out.
+
+    Used when a create-post landed as a draft. Defaults to the soonest slot the
+    API accepts. Re-runs the target guard first, like every other send.
+    """
+    resolve_target()
+    url = f"{_base()}/update-post/{post_group_id}"
+    body = {"status": "scheduled", "scheduledTime": scheduled_time or soonest_slot()}
+    try:
+        resp = requests.put(url, headers=_headers(), json=body, timeout=TIMEOUT)
+    except requests.RequestException as exc:
+        raise PubloraError(f"Release request failed: {exc}") from exc
+    if not resp.ok:
+        raise PubloraError(f"Publora {resp.status_code} on release: {resp.text[:400]}")
+    return resp.json()
+
+
+def get_post(post_group_id: str) -> dict[str, Any]:
+    """Read one post back — the only way to know what actually happened."""
+    url = f"{_base()}/get-post/{post_group_id}"
+    resp = requests.get(url, headers=_headers(), timeout=TIMEOUT)
+    if not resp.ok:
+        raise PubloraError(f"Publora {resp.status_code} on get-post: {resp.text[:400]}")
     return resp.json()
 
 
