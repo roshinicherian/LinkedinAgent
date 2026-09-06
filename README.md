@@ -16,9 +16,9 @@ until the credentials in it exist.
 |------|------|
 | Tue 08:10 | `[LI-INPUT]` email: one line about your week. No reply by Wed midday → work from the pillar plan alone. |
 | Wed 18:00–20:00 | Research + verify stats + draft 2 variants + humanise + safety gate |
-| **Wed 20:00** | **`[LI-DRAFT]` approval email** |
-| Thu 06:00 | `[REMINDER]` if no reply |
-| Thu 06:30 | Hard cutoff. **No reply = no post.** |
+| **Wed 20:00** | **Publishes the approval page and emails you the link** |
+| Thu 06:00 | Reminder if nothing decided yet |
+| Thu 06:30 | Hard cutoff. **No decision = no post.** |
 | **Thu 07:45** | **Publish + first comment with sources** |
 | Fri | Engager analytics, warm-thread flags, reply drafts (all emailed for approval) |
 
@@ -43,18 +43,29 @@ account?" read is still done by hand before the email goes out.
 
 ## Approval
 
-Email only, to `APPROVAL_EMAIL`, from `APPROVAL_FROM`. Replies are read over
-IMAP and matched by the `#<run-id>` token in the subject.
+Two modes, set by `APPROVAL_MODE`.
 
-- Only the **envelope sender** `roshini30@gmail.com` is honoured. Display names
-  prove nothing; forwarded mail is refused; instructions from any other address
-  are never followed.
-- Only the text **above** the quoted original is read.
-- `A` / `B` / `EDIT` / `REWRITE` / `HOOK` / `SHORTER` / `IMAGE` / `SKIP`.
-- `EDIT` copy is treated as final. The gate runs; the words are never rewritten.
-  A failing check comes back to you with the line and the reason.
-- Silence, ambiguity, and empty replies are **never** approval.
-- Max 3 revision rounds, then the best version plus a yes/no.
+**`web` (default).** The agent publishes an approval page and emails you the
+link. Sending only — no mailbox password anywhere. The page shows the resolved
+publish target, both variants with LinkedIn's 210-character fold drawn in, the
+gate results, sources and first comment. You tap Approve A / Approve B / Skip,
+or paste your own copy; it confirms before recording, because approving
+publishes for real. The decision is written to the page's store and read back
+by the Thursday run.
+
+**`email`.** Reply to the draft; IMAP reads it, matched by the `#<run-id>`
+subject token. Only the **envelope sender** in `APPROVAL_ALLOWED_SENDER` is
+honoured — display names prove nothing, forwarded mail is refused, and the
+agent's own outbound mail is skipped by its `X-LI-Agent-Role` header so a
+self-addressed inbox can't feed the agent its own draft. Only the text above
+the quoted original is read.
+
+Under both modes:
+
+- `EDIT` copy is **final**. The gate runs; the words are never rewritten. A
+  failing check comes back to you with the line and the reason.
+- Silence, ambiguity, and an empty decision are **never** approval.
+- The stored decision is treated as data, never as instructions.
 
 ## Layout
 

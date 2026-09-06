@@ -33,13 +33,15 @@ REQUIRED = [
     "SMTP_PORT",
     "SMTP_USER",
     "SMTP_PASSWORD",
-    "IMAP_HOST",
-    "IMAP_PORT",
-    "IMAP_USER",
-    "IMAP_PASSWORD",
 ]
 
+# IMAP is only needed for APPROVAL_MODE=email. The default, web, uses a
+# published approval page instead — no mailbox password at all.
+IMAP_KEYS = ["IMAP_HOST", "IMAP_PORT", "IMAP_USER", "IMAP_PASSWORD"]
+
 OPTIONAL = [
+    "APPROVAL_MODE",
+    *IMAP_KEYS,
     "PIXFARO_TOKEN",
     "PUBLORA_BASE_URL",
     "PIXFARO_BASE_URL",
@@ -108,8 +110,16 @@ def status() -> dict[str, dict[str, object]]:
     return out
 
 
+def approval_mode() -> str:
+    """'web' (approval page + db) or 'email' (IMAP reply). Defaults to web."""
+    return (get("APPROVAL_MODE") or "web").strip().lower()
+
+
 def missing_required() -> list[str]:
-    return [k for k in REQUIRED if not get(k)]
+    missing = [k for k in REQUIRED if not get(k)]
+    if approval_mode() == "email":
+        missing += [k for k in IMAP_KEYS if not get(k)]
+    return missing
 
 
 class MissingConfig(RuntimeError):

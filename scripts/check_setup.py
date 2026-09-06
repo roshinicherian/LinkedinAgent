@@ -28,8 +28,16 @@ def main() -> int:
             shown = "<set, hidden>" if info["present"] else ""
         print(f"  [{mark:>7}] {key:<{width}}  {tag:<8} {shown}")
 
-    missing = config.missing_required()
+    mode = config.approval_mode()
     print("\n" + "-" * 66)
+    if mode == "web":
+        print("Approval mode: WEB — you approve on a published page.")
+        print("  No IMAP password needed. SMTP is used only to send you the link.")
+    else:
+        print("Approval mode: EMAIL — you reply to the draft; IMAP reads it.")
+
+    missing = config.missing_required()
+    print("-" * 66)
     if missing:
         print(f"BLOCKED — {len(missing)} required setting(s) missing:")
         for k in missing:

@@ -53,84 +53,96 @@ cost and remaining balance in the approval email.
 
 ## 4. Where to paste the values
 
-**Not into the Claude chat.** Anything pasted there is stored in the conversation
-and is lost when the container is recycled. Use one of these instead.
+**Not into the Claude chat** — anything pasted there is stored in the
+conversation and lost when the container recycles.
 
-### Option A — environment variables (use this one)
-
-This is the only route that survives. Each weekly run fires a brand new cloud
-session that clones the repo from GitHub; it will never have a local file, but it
-*will* inherit the environment's variables.
+It is **not** under Settings, which is why it's hard to find. There is no
+settings page and no direct URL for it. The path is:
 
 1. Go to **https://claude.ai/code**
-2. Open **Environments** → the environment named **Default**
-   (`env_01AYVtUpmpU8Jv84GLGgZP2A` — the one this session is running in)
-3. Find **Environment variables** → **Add variable**
-4. Add each row below as a separate name/value pair, then save.
+2. Look at the **row directly above the message box** where you type.
+3. Click the small **cloud icon showing the environment's name** — it will say
+   **Default**. That opens the environment selector.
+4. **Hover over "Default"** in that menu — a **gear / settings icon** appears on
+   the right. Click it.
+5. The dialog has a **Environment variables** box. It takes `.env` format —
+   one `KEY=value` per line, so paste the whole block below at once rather than
+   adding them one at a time.
+6. Save.
 
-| Name | Value |
-|------|-------|
-| `PUBLORA_API_KEY` | your Publora API key |
-| `LINKEDIN_PLATFORM_ID` | the LinkedIn channel ID from Publora, exactly as shown |
-| `APPROVAL_EMAIL` | `roshiniaiagent@gmail.com` |
-| `APPROVAL_FROM` | `roshiniaiagent@gmail.com` |
-| `APPROVAL_ALLOWED_SENDER` | `roshiniaiagent@gmail.com` |
-| `SMTP_HOST` | `smtp.gmail.com` |
-| `SMTP_PORT` | `587` |
-| `SMTP_USER` | `roshiniaiagent@gmail.com` |
-| `SMTP_PASSWORD` | your 16-character Gmail App Password |
-| `IMAP_HOST` | `imap.gmail.com` |
-| `IMAP_PORT` | `993` |
-| `IMAP_USER` | `roshiniaiagent@gmail.com` |
-| `IMAP_PASSWORD` | **the same** App Password again |
-| `TIMEZONE` | `Australia/Sydney` |
-| `PIXFARO_TOKEN` | optional — only for images |
+Paste exactly this, replacing the three bracketed values:
 
-`SMTP_PASSWORD` and `IMAP_PASSWORD` are the *same* 16-character App Password.
-Gmail issues one credential that covers both. Remove the spaces Google shows it
-with.
+```
+PUBLORA_API_KEY=<your Publora API key>
+LINKEDIN_PLATFORM_ID=<the LinkedIn channel ID from Publora>
+APPROVAL_MODE=web
+APPROVAL_EMAIL=roshiniaiagent@gmail.com
+APPROVAL_FROM=roshiniaiagent@gmail.com
+APPROVAL_ALLOWED_SENDER=roshiniaiagent@gmail.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=roshiniaiagent@gmail.com
+SMTP_PASSWORD=<your 16-character Gmail App Password, no spaces>
+TIMEZONE=Australia/Sydney
+```
+
+That is the complete list — eight real settings. **No IMAP password and no IMAP
+setting appears anywhere**, because of section 4b.
+
+Two things worth knowing:
+
+- Anyone who can use the environment can read these values. That is fine for a
+  Gmail app password scoped to one throwaway account, and it is why the app
+  password (revocable in one click) is the right credential rather than your
+  Google password.
+- A running session copies the values **once, at startup**. This session will
+  not see them until it is restarted or a new session starts, so after saving,
+  start a fresh session or tell me and I'll work around it.
 
 ### Option B — a local `.env` (only if you run this on your own machine)
 
     cp .env.example .env      # most values are already filled in
-    # add the three secrets, then:
     pip install -r requirements.txt
 
 `.env` is gitignored and must never be committed.
 
-## 4b. About IMAP
+## 4b. Approving on a web page instead of by email
 
-You mentioned doing this before without IMAP. Worth knowing: **IMAP is not an
-extra credential and costs nothing.** The App Password you already have is the
-same one that reads mail. IMAP is just a checkbox:
+You do not need IMAP at all. Approval happens on a **published approval page**:
 
-  Gmail (logged in as roshiniaiagent@gmail.com) → ⚙ **See all settings** →
-  **Forwarding and POP/IMAP** → **Enable IMAP** → **Save Changes**
+1. Wednesday night the agent researches, drafts, safety-gates, then publishes an
+   approval page and **emails you the link** (sending only — that is what
+   `SMTP_*` is for, and it needs no mailbox reading).
+2. You open the link on your phone. The page shows the resolved publish target,
+   both variants rendered with LinkedIn's 210-character "see more" fold drawn in,
+   the safety-gate results, the sources, and the first comment.
+3. You tap **Approve A**, **Approve B**, **Skip**, or paste your own copy. It
+   asks you to confirm, because approving publishes for real.
+4. Your decision is written to the page's own store.
+5. Thursday 07:45 AEST the agent reads that decision and publishes.
 
-That is the whole step. Without it the agent can send you a draft but cannot see
-your reply, which means it can never publish — it fails closed by design.
+Nothing is published without a decision recorded on that page. Silence still
+means no post.
 
-Because the agent emails *itself* at this address, its own outgoing draft lands in
-the same inbox it polls. Outbound mail is stamped with an `X-LI-Agent-Role`
-header and skipped, so the agent can never mistake its own draft for your
-approval. Verified in testing.
+If you ever want the email-reply route back, set `APPROVAL_MODE=email` and add
+the four `IMAP_*` settings. The same Gmail app password covers both; IMAP just
+needs enabling under Gmail → See all settings → Forwarding and POP/IMAP.
 
-## 5. Fill in two blanks in `voice-profile.md`
+## 5. Brand assets
 
-Section 6 needs your **brand colour (hex)** before any image is generated. The
-agent will not invent it. Your handle is `roshini-cherian`
-(https://www.linkedin.com/in/roshini-cherian/).
+Done — brand colour is `#0F4C81` (deep blue, deliberately not LinkedIn's own
+blue so assets read as yours), handle `roshini-cherian`. Change either any time.
 
 ## 6. Then run, in order
 
-    python3 scripts/check_setup.py                      # all green?
-    python3 scripts/test_email_roundtrip.py send        # check your inbox
-    # reply "OK" to that email, then:
-    python3 scripts/test_email_roundtrip.py poll
-    python3 scripts/dry_run_channel.py                  # publishes nothing
+    python3 scripts/check_setup.py            # all eight settings green?
+    python3 scripts/send_test_email.py        # one email lands in your inbox
+    python3 scripts/dry_run_channel.py        # publishes nothing, ever
 
-Step 4 prints the channel name, ID and type. **Confirm it is your personal
-profile.** Only then does anything get drafted, emailed or published.
+The last one prints the connected channel's name, ID and type, and refuses to
+continue unless exactly one LinkedIn channel is connected, its ID matches
+`LINKEDIN_PLATFORM_ID` character-for-character, and it is a personal profile.
+**Confirm the name it prints is you.** Only then does anything get published.
 
 ---
 

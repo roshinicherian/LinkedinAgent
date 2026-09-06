@@ -75,9 +75,13 @@ max one elsewhere and only if it earns its place.
 *(Needed by the Pixfaro illustration layer. Fill these in — the agent will not
 guess a brand colour or invent a handle.)*
 
-- Handle: **TBC** — confirm the LinkedIn custom URL slug
-- Brand colour: **TBC** — hex
-- Logo: **TBC** — path or URL, or "none, text overlay only"
+- Handle: `roshini-cherian` (https://www.linkedin.com/in/roshini-cherian/)
+- Brand colour: **`#0F4C81`** — a deep, saturated blue. Chosen deliberately
+  *not* to be LinkedIn's own `#0A66C2`, so quote-cards and overlays read as
+  Roshini's brand rather than as LinkedIn chrome. It holds up on both light and
+  dark feed backgrounds and suits industrial/manufacturing subject matter.
+  Say the word and it changes.
+- Logo: **none** — text overlay only, until there is one
 - Visual style default: clean, non-literal, editorial. Flat vector or abstract.
   Muted industrial palette. Never photoreal, never a person's face, never a
   chart or dashboard that isn't built from a verified stat with its source

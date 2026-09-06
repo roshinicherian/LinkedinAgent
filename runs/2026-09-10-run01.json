@@ -47,5 +47,7 @@
     "You have not sent week input yet, so neither variant claims anything happened THIS week. Both are written as recurring practice, not a dated anecdote. If you'd rather ground it in a real moment from your week, reply EDIT with it and I'll treat your words as final.",
     "Variant B's sales-engineer moment is written generically on purpose — no client, sector or product is identifiable. Check it reads true to you.",
     "The ABS page could not be fetched directly from the agent's sandbox (egress proxy blocks abs.gov.au). The figure was triangulated across two independent live searches quoting the ABS domain, and the primary URL is above for you to click."
-  ]
+  ],
+  "approval_artifact_url": "https://claude.ai/code/artifact/a16d868b-3f6e-41d7-9d05-dc18b823e5a0",
+  "approval_mode": "web"
 }
