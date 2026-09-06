@@ -177,6 +177,13 @@
   .flag::before{content:"!";font-weight:700;font-family:"IBM Plex Mono",monospace;
                 color:var(--warn);flex:none}
   .note{font-size:12px;color:var(--ink-3);line-height:1.45}
+  .panel.input{border-left:3px solid var(--accent)}
+  .opt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+       text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-left:7px}
+  .inputhelp{font-size:13.5px;color:var(--ink-2);margin:9px 0 11px;max-width:62ch}
+  #weekinput{min-height:88px}
+  .inputfoot{display:flex;gap:12px;align-items:center;margin-top:11px}
+  .savednote{font-size:12.5px;color:var(--pass)}
   .btn-reset{background:none;border:0;color:var(--ink-3);font-size:12.5px;
              text-decoration:underline;padding:4px 2px}
   .btn-reset:hover{color:var(--ink)}
@@ -264,6 +271,22 @@
   </div>
 
   <div class="gate" id="gate"></div>
+
+  <section class="panel input" id="inputpanel">
+    <h2>Your week <span class="opt">optional</span></h2>
+    <p class="inputhelp" id="inputhelp">
+      One line is plenty. What you worked on, what annoyed you, what surprised
+      you. This is what Tuesday morning asks for &mdash; whatever is here on
+      Wednesday night grounds the post in something real instead of the pillar
+      plan alone. This week's drafts are already written, so anything you add
+      now feeds next week.
+    </p>
+    <textarea id="weekinput" placeholder="e.g. spent two days chasing a conversion that fired twice..."></textarea>
+    <div class="inputfoot">
+      <button class="btn-2" id="btn-week">Save</button>
+      <span class="savednote" id="weeksaved"></span>
+    </div>
+  </section>
 
   <div class="variants" id="variants"></div>
 
@@ -546,6 +569,8 @@ function paint(d) {
       "The agent publishes it, posts the sources comment, and emails you the live link.";
   }
   document.querySelectorAll(".editor,.titlein").forEach(t => { t.readOnly = true; });
+  $("weekinput").readOnly = true;
+  $("btn-week").disabled = true;
   document.querySelectorAll(".titletoggle input").forEach(t => { t.disabled = true; });
   document.querySelectorAll("[data-reset]").forEach(b => { b.hidden = true; });
   document.querySelectorAll("[data-pick]").forEach(b => { b.disabled = true; });
@@ -602,10 +627,34 @@ document.querySelectorAll("[data-pick]").forEach(btn => {
 
 $("btn-skip").addEventListener("click", () => record("SKIP"));
 
+/* ---------- your week ---------- */
+const weekDoc = () => "input/week-" + RUN.id;
+
+$("btn-week").addEventListener("click", async () => {
+  if (!db) { $("weeksaved").textContent = "Couldn't save — tell the agent directly."; return; }
+  try {
+    await db.doc(weekDoc()).set({
+      run_id: RUN.id,
+      note: $("weekinput").value.trim(),
+      saved_at: new Date().toISOString()
+    });
+    $("weeksaved").textContent = "Saved.";
+    setTimeout(() => { $("weeksaved").textContent = ""; }, 2600);
+  } catch (e) {
+    $("weeksaved").textContent = "Couldn't save that. Try again.";
+  }
+});
+
 /* ---------- store ---------- */
 (async () => {
   db = await window.claude?.use?.("db");
   if (!db) return;
+  try {
+    const w = await db.doc(weekDoc()).get();
+    if (w && w.exists && w.data && typeof w.data.note === "string") {
+      $("weekinput").value = w.data.note;
+    }
+  } catch (e) { /* nothing saved yet */ }
   try {
     const snap = await db.doc("approvals/run-" + RUN.id).get();
     if (snap && snap.exists && snap.data && snap.data.decision) paint(snap.data);

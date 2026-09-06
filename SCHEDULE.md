@@ -4,15 +4,23 @@ Four Routines run the weekly cycle. They fire a fresh Claude session each time,
 so they survive this container being reclaimed. Manage them at
 claude.ai → Routines.
 
-| Routine | Sydney time | UTC cron | Trigger ID |
-|---------|-------------|----------|------------|
-| Ask for your week — `[LI-INPUT]` | Tue 08:10 | `10 22 * * 1` | `trig_01XTH9eYf5UsG3xoUnUjxu16` |
-| **Research, draft, email — `[LI-DRAFT]`** | **Wed 20:00** | `0 10 * * 3` | `trig_01RPX1r3qY2yyw78P8B4XvUS` |
-| Reminder if no reply — `[REMINDER]` | Thu 06:00 | `0 20 * * 3` | `trig_01BJFzgJSwSWr9SczqKXV5Yd` |
-| **Publish on approval only** | **Thu 07:45** | `45 21 * * 3` | `trig_01GTFSsajxvGdGikFp551nus` |
+| Routine | Sydney time | UTC cron | What it does | Trigger ID |
+|---------|-------------|----------|--------------|------------|
+| `[LI-INPUT]` | Tue 08:10 | `10 22 * * 1` | Opens this week's page with the "Your week" box and emails you the link | `trig_01XTH9eYf5UsG3xoUnUjxu16` |
+| **`[LI-DRAFT]`** | **Wed 20:00** | `0 10 * * 3` | Reads your note off the page, researches, drafts two variants, gates them, **republishes the same page** with the drafts, emails the link | `trig_01RPX1r3qY2yyw78P8B4XvUS` |
+| `[REMINDER]` | Thu 06:00 | `0 20 * * 3` | One reminder, only if no decision is recorded yet | `trig_01BJFzgJSwSWr9SczqKXV5Yd` |
+| **Publish** | **Thu 07:45** | `45 21 * * 3` | Reads your decision off the page and publishes it | `trig_01GTFSsajxvGdGikFp551nus` |
 
-Approval cutoff is Thu 06:30 AEST. The publish routine checks for a valid reply
-and does nothing if there isn't one. Silence is never approval.
+**One page per week, one link.** Tuesday's page and Wednesday's are the same
+artifact at the same URL — Wednesday republishes it in place, so your saved week
+note survives and the link in your inbox never goes stale.
+
+**No email is ever read.** Every email is send-only and carries a link. Your week
+note and your approval are both typed on the page and stored there; the routines
+read them with the Artifact tool. There is no IMAP anywhere in the loop.
+
+Approval cutoff is Thu 06:30 AEST. The publish routine does nothing unless a
+decision is recorded. Silence is never approval.
 
 Every routine's first action is `scripts/check_setup.py`. Until the credentials
 in `SETUP.md` exist, each firing stops there and sends nothing — no half-runs.

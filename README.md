@@ -14,7 +14,7 @@ until the credentials in it exist.
 
 | When | What |
 |------|------|
-| Tue 08:10 | `[LI-INPUT]` email: one line about your week. No reply by Wed midday → work from the pillar plan alone. |
+| Tue 08:10 | Opens this week's page and emails you the link. One line about your week, typed in the box. Nothing there by Wednesday night → the post is written from the pillar plan alone. |
 | Wed 18:00–20:00 | Research + verify stats + draft 2 variants + humanise + safety gate |
 | **Wed 20:00** | **Publishes the approval page and emails you the link** |
 | Thu 06:00 | Reminder if nothing decided yet |
