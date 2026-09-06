@@ -22,6 +22,9 @@ until the credentials in it exist.
 | **Thu 07:45** | **Publish + first comment with sources** |
 | Fri | Engager analytics, warm-thread flags, reply drafts (all emailed for approval) |
 
+The schedule runs as four Routines — see [`SCHEDULE.md`](SCHEDULE.md), which
+also carries the daylight-saving change due 4 October 2026.
+
 ## The four non-negotiables, as code
 
 | Rule | Where it lives | Behaviour |
