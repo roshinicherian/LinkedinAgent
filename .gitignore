@@ -1,0 +1,19 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime state
+logs/*.log
+logs/*.json
+!logs/.gitkeep
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated assets
+assets/generated/
+drafts/*.approved.txt
