@@ -253,6 +253,38 @@ def check_craft(text: str) -> CheckResult:
     return CheckResult("craft", not findings, findings)
 
 
+# LinkedIn has no rich text, so a "bold" line is Unicode Mathematical
+# Sans-Serif Bold. Worth knowing the cost: screen readers announce these as
+# mathematical symbols or skip them entirely, so keep it to a short title and
+# never put load-bearing words only in bold.
+_BOLD_UPPER = 0x1D5D4 - ord("A")
+_BOLD_LOWER = 0x1D5EE - ord("a")
+_BOLD_DIGIT = 0x1D7EC - ord("0")
+
+
+def to_bold(text: str) -> str:
+    """Render ASCII letters and digits as Unicode sans-serif bold."""
+    out = []
+    for ch in text:
+        if "A" <= ch <= "Z":
+            out.append(chr(ord(ch) + _BOLD_UPPER))
+        elif "a" <= ch <= "z":
+            out.append(chr(ord(ch) + _BOLD_LOWER))
+        elif "0" <= ch <= "9":
+            out.append(chr(ord(ch) + _BOLD_DIGIT))
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def compose(title: str | None, body: str, include_title: bool) -> str:
+    """Final post text. The title is bolded only at this last step, so every
+    safety check runs against plain, matchable words."""
+    if include_title and title and title.strip():
+        return to_bold(title.strip()) + "\n\n" + body.lstrip()
+    return body
+
+
 def sanitise(text: str) -> str:
     """Strip smart quotes and non-breaking spaces before publishing."""
     for bad, good in [("‘", "'"), ("’", "'"), ("“", '"'),

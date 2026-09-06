@@ -60,7 +60,18 @@ subtweeting · no mention of employment status, job searching, internal agency
 matters, hiring, or colleagues by name · no unverified numbers · no invented
 awards, certifications, speaking gigs or clients.
 
-## 5. Structure
+## 5. Titles
+
+Every post carries a short title (3-6 words) as a bold first line. It names the
+idea rather than summarising the post: "The Forty-Second Edit", not "What I
+Learned About Briefing AI". It is the reader's first impression and it competes
+with the hook for the 210-character fold, so it earns its length or it goes.
+
+Bold on LinkedIn is Unicode Mathematical Sans-Serif Bold. Screen readers handle
+those glyphs badly, so the title is never the only place a load-bearing word
+appears, and it stays short.
+
+## 6. Structure
 
 hook (one line, survives the 210-char fold) → tension or a specific moment →
 the insight with a concrete mechanic → what it means for the reader → one
@@ -70,7 +81,7 @@ question answerable in a sentence.
 first comment. Max 3 hashtags, lowercase, at the very end. No emoji in the hook,
 max one elsewhere and only if it earns its place.
 
-## 6. Brand assets
+## 7. Brand assets
 
 *(Needed by the Pixfaro illustration layer. Fill these in — the agent will not
 guess a brand colour or invent a handle.)*
@@ -87,7 +98,7 @@ guess a brand colour or invent a handle.)*
   chart or dashboard that isn't built from a verified stat with its source
   labelled on the image.
 
-## 7. Audit
+## 8. Audit
 
 Every draft finishes with `linkedin-humanizer --mode audit` at **strict** tier.
 A draft that has not passed is never emailed.

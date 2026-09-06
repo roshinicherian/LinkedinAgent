@@ -56,6 +56,13 @@ phrases, question hooks, body links, hashtag overruns and US spellings. Those
 browser flags are advisory; `safety.py` remains the authority and runs again
 before anything is sent.
 
+Each variant also carries a **title**, editable on the page, with a toggle for
+whether it goes out as a bold first line. LinkedIn has no rich text, so bold is
+Unicode Mathematical Sans-Serif Bold, applied only at the final compose step —
+every safety check runs against plain, matchable words. The page shows what the
+title costs in characters and notes once that screen readers handle these
+glyphs poorly, so keep titles short.
+
 Approving publishes **exactly what is in the box**. If you changed a word, the
 decision is stored with `edited: true` and your wording is treated as final —
 the gate runs on it, but nothing is rewritten. It asks you to confirm first,

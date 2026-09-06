@@ -149,6 +149,18 @@
   .editor[readonly]{background:var(--surface-2);border-style:dashed;color:var(--ink-2)}
   .editnote{color:var(--ink-3);font-family:"IBM Plex Mono",monospace;font-size:11px;
             letter-spacing:.04em}
+  .titlerow{display:flex;gap:11px;align-items:center;flex-wrap:wrap;padding:14px 18px 0}
+  .titlein{
+    flex:1;min-width:200px;font-family:Archivo,sans-serif;font-size:17px;font-weight:700;
+    color:var(--ink);background:var(--ground);border:1px solid var(--line-strong);
+    border-radius:8px;padding:9px 12px;
+  }
+  .titlein:hover{border-color:var(--accent)}
+  .titlein:focus{outline:2px solid var(--accent);outline-offset:-1px;background:var(--surface)}
+  .titlein[readonly]{background:var(--surface-2);border-style:dashed;color:var(--ink-2)}
+  .titletoggle{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink-2);
+               white-space:nowrap;cursor:pointer}
+  .titletoggle input{accent-color:var(--accent);cursor:pointer}
   .card:focus-within{border-color:var(--accent)}
 
   .counts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;
@@ -164,6 +176,7 @@
   .flag{font-size:12.5px;color:var(--warn);display:flex;gap:7px;align-items:flex-start}
   .flag::before{content:"!";font-weight:700;font-family:"IBM Plex Mono",monospace;
                 color:var(--warn);flex:none}
+  .note{font-size:12px;color:var(--ink-3);line-height:1.45}
   .btn-reset{background:none;border:0;color:var(--ink-3);font-size:12.5px;
              text-decoration:underline;padding:4px 2px}
   .btn-reset:hover{color:var(--ink)}
@@ -281,34 +294,38 @@
 const RUN = {
   id: "01",
   variants: [
-    { label: "A", formula: "F17 Controlled A/B Anecdote", goal: "comments", stats: "no statistic",
-      text: `Two briefs for the same product page. One came back usable. One came back as a brochure.
+    { label: "A", title: "The Brief Does the Work", formula: "F17 Controlled A/B Anecdote", goal: "comments", stats: "no statistic",
+      text: `The draft came back in ninety seconds and it read beautifully. Every sentence true, and not one of them a sentence a buyer would need.
 
-The second brief had one extra line: the objections the sales team hears on every call.
+It described a piece of industrial equipment the way the brochure already did. So I threw it out and wrote the brief again.
 
-Same product. Same writer. Same twenty minutes. The only variable was whether the AI knew what the buyer was sceptical about.
+Same product. Same model. Same twenty minutes. The only thing I added was the list of objections the sales team hears on every call.
 
-For technical products that gap is wider than anywhere else I work. The person reading a spec page has usually specified this category before. They know the tolerances, and they can tell inside a sentence whether the writer has been on site or only on the website.
+The second draft opened with the thing that fails first in the field.
 
-AI writes fluently at exactly the level of generality that reads as never having been on site. It doesn't know what a plant manager is quietly worried about, and it won't think to ask.
+That gap is wider in technical categories than anywhere else I work. The person reading a spec page has usually specified this category before. They know the tolerances, and they can tell inside a sentence whether the writer has been on site or only on the website.
 
-So the work moved rather than disappeared. I spend longer on the brief now and almost no time rewriting the draft, and most of that brief is questions I had to put to someone who actually does the job.
+AI writes fluently at exactly the level of generality that reads as never having been on site. It doesn't know what a plant manager is quietly worried about at 4pm on a Friday, and it won't think to ask.
+
+So the work moved rather than disappeared. I spend longer on briefs now and almost no time rewriting drafts, and most of that brief is questions I had to put to someone who actually does the job.
 
 What's the one line in your brief that changes the output most?
 
 #b2bmarketing #aimarketing` },
-    { label: "B", formula: "F16 Status-Strip Humility", goal: "likes / warmth", stats: "1 verified stat",
-      text: `Ten years into B2B marketing, and the fastest edit I ever got came from a sales engineer who doesn't write for a living.
+    { label: "B", title: "The Forty-Second Edit", formula: "F16 Status-Strip Humility", goal: "likes / warmth", stats: "1 verified stat",
+      text: `Ten years of writing B2B copy, and the best edit I've ever been handed took about forty seconds and came from someone who doesn't write for a living.
 
-I'd written a paragraph about how a component performed under load. Technically accurate. He crossed the whole thing out and wrote one sentence about the failure it prevents. His version was better and it took him about forty seconds.
+I'd sent a paragraph on how a component performed under load. Technically accurate, carefully hedged, quietly proud of itself.
 
-That gap turns up every time I brief AI on a technical product now. The draft comes back articulate and slightly hollow, because the model has read a thousand pages about the category and has never stood next to the thing when it fails.
+The sales engineer read it once, crossed the whole thing out, and wrote a single sentence about the failure it prevents. His version was better because he'd been called out to that failure at 2am.
 
-Worth remembering that most buyers in these categories aren't AI-native either. The ABS put business AI use in Australia at 12% in 2024-25, up from 1% three years earlier, with IT, media and telcos leading adoption. The categories I work in aren't in that leading group.
+That moment turns up every time I brief AI on a technical product now. The draft comes back articulate and slightly hollow, because the model has read a thousand pages about the category and never stood next to the thing when it fails.
 
-So generic reads as generic much faster here than it does in software.
+Most buyers in these categories aren't AI-native either. The ABS put business AI use in Australia at 12% in 2024-25, up from 1% three years earlier, with IT, media and telcos leading adoption. The categories I work in aren't in that leading group.
 
-AI doesn't write the first draft of anything a specialist will read for me anymore. It interrogates my brief instead, and I take the questions to the person who knows.
+So generic reads as generic far faster here than in software.
+
+AI doesn't write my first drafts anymore when a specialist will read them. It interrogates my brief, and I take the questions to the person who knows.
 
 Who's the person outside marketing whose edits you trust most?
 
@@ -364,6 +381,14 @@ $("variants").innerHTML = RUN.variants.map(v => `
       <span class="badge">Variant ${v.label}</span>
       <span class="meta">${v.formula}<span class="sep">&middot;</span>${v.goal}<span class="sep">&middot;</span>${v.text.length} chars<span class="sep">&middot;</span>${v.stats}</span>
     </div>
+    <div class="titlerow">
+      <input class="titlein" id="title-${v.label}" value="${escapeHtml(v.title)}"
+             aria-label="Variant ${v.label} title" placeholder="Post title">
+      <label class="titletoggle">
+        <input type="checkbox" id="usetitle-${v.label}" checked>
+        Show as bold first line
+      </label>
+    </div>
     <div class="counts" id="counts-${v.label}"></div>
     <textarea class="editor" id="post-${v.label}" spellcheck="true"
               aria-label="Variant ${v.label} post text, editable">${escapeHtml(v.text)}</textarea>
@@ -380,6 +405,26 @@ $("variants").innerHTML = RUN.variants.map(v => `
 
 
 /* ---------- live editing ---------- */
+// LinkedIn has no rich text, so bold is Unicode Mathematical Sans-Serif Bold.
+// Applied only at compose time, so every check below runs on plain words.
+const BOLD_U = 0x1D5D4 - 65, BOLD_L = 0x1D5EE - 97, BOLD_D = 0x1D7EC - 48;
+const toBold = (t) => [...t].map(c => {
+  const n = c.codePointAt(0);
+  if (n >= 65 && n <= 90) return String.fromCodePoint(n + BOLD_U);
+  if (n >= 97 && n <= 122) return String.fromCodePoint(n + BOLD_L);
+  if (n >= 48 && n <= 57) return String.fromCodePoint(n + BOLD_D);
+  return c;
+}).join("");
+
+function composed(label) {
+  const body = $("post-" + label).value;
+  const title = $("title-" + label).value.trim();
+  const use = $("usetitle-" + label).checked;
+  return { plain: use && title ? title + "\n\n" + body.replace(/^\s+/, "") : body,
+           final: use && title ? toBold(title) + "\n\n" + body.replace(/^\s+/, "") : body,
+           title, use };
+}
+
 // Advisory only. The authoritative safety gate runs in Python before publishing.
 const BANNED = ["let that sink in","here's the thing","game-changer","game changer",
   "in today's fast-paced","i was recently reminded","unpopular opinion","hot take",
@@ -414,7 +459,8 @@ function advise(text) {
 function refresh(label) {
   const v = RUN.variants.find(x => x.label === label);
   const ta = $("post-" + label);
-  const text = ta.value;
+  const c = composed(label);
+  const text = c.plain;
 
   ta.style.height = "auto";
   ta.style.height = ta.scrollHeight + "px";
@@ -435,10 +481,11 @@ function refresh(label) {
   let cls = "ok", note = "in the sweet spot";
   if (n > 1600) { cls = "stop"; note = "over the 1,600 hard ceiling"; }
   else if (n > 1300 || n < 900) { cls = "warn"; note = "outside 900\u20131,300"; }
-  const dirty = text !== v.text;
+  const dirty = ta.value !== v.text || c.title !== v.title;
   $("counts-" + label).innerHTML =
     '<span class="editnote">Editable \u2014 change any wording before you approve</span>' +
     `<span class="cnt ${cls}">${n} chars \u2014 ${note}</span>` +
+    (c.use ? `<span class="cnt">title on \u2014 costs ${c.title.length + 2} chars</span>` : "") +
     (dirty ? '<span class="edited">edited</span>' : "");
 
   // advisory flags
@@ -446,6 +493,13 @@ function refresh(label) {
   $("flags-" + label).innerHTML = flags.map(f => `<div class="flag">${escapeHtml(f)}</div>`).join("");
 
   document.querySelector(`[data-reset="${label}"]`).hidden = !dirty;
+  if (c.use && c.title) {
+    const f = $("flags-" + label);
+    const d = document.createElement("div");
+    d.className = "note";
+    d.textContent = "Bold titles are Unicode symbols \u2014 screen readers read them poorly. Keep it short.";
+    f.appendChild(d);
+  }
 
   // any edit cancels a pending confirm, so you never publish text you just changed
   const btn = document.querySelector(`[data-pick="${label}"]`);
@@ -458,8 +512,11 @@ function refresh(label) {
 RUN.variants.forEach(v => {
   const ta = $("post-" + v.label);
   ta.addEventListener("input", () => refresh(v.label));
+  $("title-" + v.label).addEventListener("input", () => refresh(v.label));
+  $("usetitle-" + v.label).addEventListener("change", () => refresh(v.label));
   document.querySelector(`[data-reset="${v.label}"]`).addEventListener("click", () => {
-    ta.value = v.text; refresh(v.label);
+    ta.value = v.text; $("title-" + v.label).value = v.title;
+    $("usetitle-" + v.label).checked = true; refresh(v.label);
   });
   refresh(v.label);
 });
@@ -488,7 +545,8 @@ function paint(d) {
         : "") +
       "The agent publishes it, posts the sources comment, and emails you the live link.";
   }
-  document.querySelectorAll(".editor").forEach(t => { t.readOnly = true; });
+  document.querySelectorAll(".editor,.titlein").forEach(t => { t.readOnly = true; });
+  document.querySelectorAll(".titletoggle input").forEach(t => { t.disabled = true; });
   document.querySelectorAll("[data-reset]").forEach(b => { b.hidden = true; });
   document.querySelectorAll("[data-pick]").forEach(b => { b.disabled = true; });
   $("btn-skip").disabled = true;
@@ -497,14 +555,17 @@ function paint(d) {
 async function record(decision, textOverride) {
   let text = textOverride || "";
   let edited = Boolean(textOverride);
+  let title = "", useTitle = false;
   if (decision === "A" || decision === "B") {
     const v = RUN.variants.find(x => x.label === decision);
+    const c = composed(decision);
     text = $("post-" + decision).value.trim();
-    edited = text !== v.text;
+    title = c.title; useTitle = c.use;
+    edited = text !== v.text || title !== v.title;
   }
   const payload = {
     decision, run_id: RUN.id,
-    text, edited,
+    text, title, include_title: useTitle, edited,
     edited_text: edited ? text : "",
     decided_at: new Date().toISOString()
   };

@@ -22,6 +22,8 @@ def main() -> int:
     ap.add_argument("--variant", choices=["A", "B"])
     ap.add_argument("--text-file", help="Roshini's own copy; published verbatim if it passes")
     ap.add_argument("--now", action="store_true", help="publish immediately instead of scheduling")
+    ap.add_argument("--title", help="override the variant's title")
+    ap.add_argument("--no-title", action="store_true", help="publish without a bold title line")
     args = ap.parse_args()
 
     if bool(args.variant) == bool(args.text_file):
@@ -38,12 +40,18 @@ def main() -> int:
             print(f"Variant {args.variant} is not in this run.")
             return 1
         text, formula, uses_stats = v["text"], v["formula"], v.get("uses_stats", False)
+        title = args.title or v.get("title")
     else:
         text = Path(args.text_file).read_text(encoding="utf-8").strip()
         formula, uses_stats = "EDIT (Roshini's own copy)", True
+        title = args.title
 
+    include_title = bool(title) and not args.no_title
+    # Gate the PLAIN composition so banned phrases and spellings still match;
+    # bold is applied only on the way out.
     text = safety.sanitise(text)
-    rep = safety.run_gate(text, verified if uses_stats else [], personal)
+    plain = safety.compose(title, text, include_title)
+    rep = safety.run_gate(plain, verified if uses_stats else [], personal)
     print("SAFETY GATE\n" + rep.render())
     if not rep.passed:
         print("\nBLOCKED — not publishing, and not rewriting. "
@@ -57,7 +65,10 @@ def main() -> int:
         return 1
     print(f"\nTarget: {target.summary()}")
 
-    res = pub.publish(text, scheduled_time=None if args.now else run["scheduled_iso"],
+    final = safety.to_bold(title.strip()) + "\n\n" + text.lstrip() if include_title else text
+    if include_title:
+        print(f"Title line: {title!r} (bold)")
+    res = pub.publish(final, scheduled_time=None if args.now else run["scheduled_iso"],
                       media_urls=run.get("media_urls") or None)
     url = res.get("url") or res.get("postUrl") or ""
     print("Published." if args.now else f"Scheduled for {run['scheduled_iso']}.")
@@ -73,7 +84,7 @@ def main() -> int:
     stats = run.get("sources", []) if uses_stats else []
     postlog.append_run(
         date=run["date"], run_id=run["run_id"], pillar=run["pillar"],
-        hook_formula=formula, opening_line=text.splitlines()[0], topic=run["topic"],
+        hook_formula=formula, opening_line=(title or text.splitlines()[0]), topic=run["topic"],
         stats=stats, image_cost=run.get("image_cost", "$0.00"),
         rounds=run.get("round", 1), live_url=url,
         notes=f"approved via approval page ({args.variant or 'EDIT'})",
