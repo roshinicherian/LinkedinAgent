@@ -44,7 +44,7 @@ COPY = {
     "live": (
         "[LI-LIVE {d} #{run}] your post is up",
         "Published",
-        "This week's post is live. The sources comment went up with it.",
+        "This week's post is live, sources and all.",
     ),
 }
 
