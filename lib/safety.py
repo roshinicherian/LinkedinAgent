@@ -17,11 +17,18 @@ class CheckResult:
     name: str
     passed: bool
     findings: list[str] = field(default_factory=list)
+    # Craft opinions worth reading that must never block a send — the body is
+    # Roshini's to edit, and the gate does not overrule her taste on length or
+    # on a link she has decided to keep.
+    advisories: list[str] = field(default_factory=list)
 
     def render(self) -> str:
-        return f"{self.name}: {'PASS' if self.passed else 'FAIL'}" + (
+        head = f"{self.name}: {'PASS' if self.passed else 'FAIL'}" + (
             "" if self.passed else " — " + "; ".join(self.findings)
         )
+        if self.advisories:
+            head += "\n  advisory: " + "; ".join(self.advisories)
+        return head
 
 
 @dataclass
@@ -67,11 +74,27 @@ _CLIENT_PATTERNS = [
 ]
 
 
-def check_clients(text: str) -> CheckResult:
-    findings = [f"{desc} → {m.group(0)!r}"
-                for pat, desc in _CLIENT_PATTERNS
-                for m in re.finditer(pat, text, re.I)]
+def check_clients(text: str, source_urls: list[str] | None = None) -> CheckResult:
+    """`source_urls` are the URLs this run verified. The sources travel in the
+    body now, so a cited research URL is not client leakage — any other URL
+    still is, and an unlisted one still fails.
+    """
+    licensed = {_url_key(u) for u in (source_urls or [])}
+    findings = []
+    for pat, desc in _CLIENT_PATTERNS:
+        for m in re.finditer(pat, text, re.I):
+            if licensed and _url_key(m.group(0)) in licensed:
+                continue
+            findings.append(f"{desc} → {m.group(0)!r}")
     return CheckResult("client-scrub", not findings, findings)
+
+
+def _url_key(url: str) -> str:
+    """Compare URLs by host+path, ignoring scheme, www. and a trailing slash."""
+    u = url.strip().lower()
+    u = re.sub(r"^https?://", "", u)
+    u = re.sub(r"^www\.", "", u)
+    return u.rstrip("/")
 
 
 # -------------------------------------------------------- 2. negativity
@@ -161,14 +184,23 @@ _BENIGN = re.compile(
 _NUMBER = re.compile(r"(?<![\w$])(\d[\d,]*(?:\.\d+)?)\s*(%|per cent|percent|x|k|m)?", re.I)
 
 
-def check_stats(text: str, verified_numbers: list[str], allowed_personal: list[str] | None = None) -> CheckResult:
+def check_stats(text: str, verified_numbers: list[str],
+                allowed_personal: list[str] | None = None,
+                citation_numbers: list[str] | None = None) -> CheckResult:
     """Every number that reads as a claim must be on the verified list.
 
     `verified_numbers` are strings confirmed by a live search THIS RUN.
     `allowed_personal` are facts from Roshini's own context block (e.g. "10").
+    `citation_numbers` come from the source records themselves — a sample size
+    or an edition year, licensed because the citation is in the body now. They
+    are not claims, so they never count against the two-statistic cap.
     """
-    allowed = {n.strip().lower().rstrip("%") for n in verified_numbers}
-    allowed |= {n.strip().lower().rstrip("%") for n in (allowed_personal or [])}
+    def norm(n: str) -> str:
+        return n.strip().lower().rstrip("%").replace(",", "")
+
+    allowed = {norm(n) for n in verified_numbers}
+    allowed |= {norm(n) for n in (allowed_personal or [])}
+    allowed |= {norm(n) for n in (citation_numbers or [])}
 
     findings: list[str] = []
     scrubbed = _BENIGN.sub(" ", text)
@@ -206,11 +238,17 @@ def check_craft(text: str) -> CheckResult:
     lowered = text.lower()
     lines = [l for l in text.splitlines() if l.strip()]
 
+    advisories: list[str] = []
+
+    # The sources now live in the body, so a post that carries them runs long
+    # by design. Only LinkedIn's own limit blocks; the craft targets advise.
     n = len(text)
-    if n > 1600:
-        findings.append(f"{n} chars — hard ceiling is 1,600")
+    if n > 3000:
+        findings.append(f"{n} chars — LinkedIn truncates the post above 3,000")
+    elif n > 1600:
+        advisories.append(f"{n} chars — long; the craft ceiling is 1,600")
     elif not (900 <= n <= 1300):
-        findings.append(f"{n} chars — target is 900–1,300 (advisory)")
+        advisories.append(f"{n} chars — target is 900–1,300")
 
     for p in BANNED_PHRASES:
         if p in lowered:
@@ -237,7 +275,8 @@ def check_craft(text: str) -> CheckResult:
     if len(tags) > 3:
         findings.append(f"{len(tags)} hashtags — max 3")
     if re.search(r"https?://|www\.", text):
-        findings.append("link in the post body — links go in the first comment")
+        advisories.append("link in the body — LinkedIn suppresses reach on these; "
+                          "cut it if the source reads fine unlinked")
 
     emoji = [ch for ch in text if unicodedata.category(ch) == "So"]
     if len(emoji) > 1:
@@ -250,7 +289,7 @@ def check_craft(text: str) -> CheckResult:
         if re.search(rf"\b{us}", lowered):
             findings.append(f"US spelling {us!r} — use {au!r}")
 
-    return CheckResult("craft", not findings, findings)
+    return CheckResult("craft", not findings, findings, advisories)
 
 
 # LinkedIn has no rich text, so a "bold" line is Unicode Mathematical
@@ -294,12 +333,27 @@ def sanitise(text: str) -> str:
     return text
 
 
+def source_licences(sources: list[dict]) -> tuple[list[str], list[str]]:
+    """What a run's own source records license in the body: their URLs, and the
+    numbers inside their citations (sample size, edition year). Returns
+    (source_urls, citation_numbers) for run_gate.
+    """
+    urls = [s["url"] for s in sources if s.get("url")]
+    numbers: list[str] = []
+    for s in sources:
+        blob = f"{s.get('org', '')} {s.get('claim', '')} {s.get('year', '')}"
+        numbers += re.findall(r"\d[\d,]*(?:\.\d+)?", blob)
+    return urls, numbers
+
+
 def run_gate(text: str, verified_numbers: list[str],
-             allowed_personal: list[str] | None = None) -> GateReport:
+             allowed_personal: list[str] | None = None,
+             source_urls: list[str] | None = None,
+             citation_numbers: list[str] | None = None) -> GateReport:
     return GateReport([
-        check_clients(text),
+        check_clients(text, source_urls),
         check_negativity(text),
         check_politics_religion(text),
-        check_stats(text, verified_numbers, allowed_personal),
+        check_stats(text, verified_numbers, allowed_personal, citation_numbers),
         check_craft(text),
     ])

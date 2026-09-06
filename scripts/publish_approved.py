@@ -51,7 +51,9 @@ def main() -> int:
     # bold is applied only on the way out.
     text = safety.sanitise(text)
     plain = safety.compose(title, text, include_title)
-    rep = safety.run_gate(plain, verified if uses_stats else [], personal)
+    src_urls, cite_nums = safety.source_licences(run.get("sources", []))
+    rep = safety.run_gate(plain, verified if uses_stats else [], personal,
+                          src_urls, cite_nums)
     print("SAFETY GATE\n" + rep.render())
     if not rep.passed:
         print("\nBLOCKED — not publishing, and not rewriting. "
@@ -72,14 +74,6 @@ def main() -> int:
                       media_urls=run.get("media_urls") or None)
     url = res.get("url") or res.get("postUrl") or ""
     print("Published." if args.now else f"Scheduled for {run['scheduled_iso']}.")
-
-    pid = res.get("postGroupId") or res.get("id") or res.get("postId")
-    if run.get("first_comment") and pid:
-        try:
-            pub.comment(pid, run["first_comment"])
-            print("First comment posted.")
-        except pub.PubloraError as exc:
-            print(f"Post is live but the first comment failed: {exc}")
 
     stats = run.get("sources", []) if uses_stats else []
     postlog.append_run(

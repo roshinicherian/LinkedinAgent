@@ -58,13 +58,6 @@ def main() -> int:
                     return 1
                 res = _publish(variant["text"], run, args.publish_now)
                 url = res.get("url") or res.get("postUrl") or ""
-                if run.get("first_comment") and (pid := res.get("postGroupId")
-                                                 or res.get("id") or res.get("postId")):
-                    try:
-                        pub.comment(pid, run["first_comment"])
-                        print("First comment posted.")
-                    except pub.PubloraError as exc:
-                        print(f"Post is live but the first comment failed: {exc}")
                 postlog.append_run(
                     date=run["date"], run_id=run["run_id"], pillar=run["pillar"],
                     hook_formula=variant["formula"],
@@ -91,9 +84,11 @@ def main() -> int:
 
             if r.command == "EDIT":
                 text = safety.sanitise(r.payload)
+                src_urls, cite_nums = safety.source_licences(run.get("sources", []))
                 rep = safety.run_gate(text, [n for s in run.get("sources", [])
                                              for n in s.get("numbers", [])],
-                                      run.get("allowed_personal_numbers", []))
+                                      run.get("allowed_personal_numbers", []),
+                                      src_urls, cite_nums)
                 if rep.passed:
                     res = _publish(text, run, args.publish_now)
                     print("Your copy published verbatim.")

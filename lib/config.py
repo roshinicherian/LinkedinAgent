@@ -21,6 +21,7 @@ SECRET_KEYS = {
     "PIXFARO_TOKEN",
     "SMTP_PASSWORD",
     "IMAP_PASSWORD",
+    "EMAIL_API_KEY",
 }
 
 # (key, required?) — required keys block the run when missing.
@@ -35,12 +36,23 @@ REQUIRED = [
     "SMTP_PASSWORD",
 ]
 
+# Sending over an HTTPS email API instead of SMTP. Required where the agent
+# runs: a Claude Code session allows HTTPS only, and port 587 is reset at
+# egress, so SMTP cannot deliver there at all.
+HTTPS_PROVIDERS = ("resend", "brevo", "postmark", "mailgun")
+SMTP_KEYS = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD"]
+
 # IMAP is only needed for APPROVAL_MODE=email. The default, web, uses a
 # published approval page instead — no mailbox password at all.
 IMAP_KEYS = ["IMAP_HOST", "IMAP_PORT", "IMAP_USER", "IMAP_PASSWORD"]
 
 OPTIONAL = [
     "APPROVAL_MODE",
+    "EMAIL_TRANSPORT",
+    "EMAIL_PROVIDER",
+    "EMAIL_API_KEY",
+    "MAILGUN_DOMAIN",
+    "POSTMARK_STREAM",
     *IMAP_KEYS,
     "PIXFARO_TOKEN",
     "PUBLORA_BASE_URL",
@@ -115,7 +127,30 @@ def approval_mode() -> str:
     return (get("APPROVAL_MODE") or "web").strip().lower()
 
 
+def email_transport() -> str:
+    """'smtp' or one of HTTPS_PROVIDERS. 'auto' (the default) picks the HTTPS
+    provider when EMAIL_PROVIDER and EMAIL_API_KEY are both set, else SMTP.
+    """
+    t = (get("EMAIL_TRANSPORT") or "auto").strip().lower()
+    if t != "auto":
+        return t
+    provider = (get("EMAIL_PROVIDER") or "").strip().lower()
+    return provider if provider in HTTPS_PROVIDERS and get("EMAIL_API_KEY") else "smtp"
+
+
 def missing_required() -> list[str]:
+    transport = email_transport()
+    if transport in HTTPS_PROVIDERS:
+        # SMTP credentials are not used on this road out.
+        missing = [k for k in REQUIRED if k not in SMTP_KEYS and not get(k)]
+        if not get("EMAIL_API_KEY"):
+            missing.append("EMAIL_API_KEY")
+        if transport == "mailgun" and not get("MAILGUN_DOMAIN"):
+            missing.append("MAILGUN_DOMAIN")
+        if approval_mode() == "email":
+            missing += [k for k in IMAP_KEYS if not get(k)]
+        return missing
+
     missing = [k for k in REQUIRED if not get(k)]
     if approval_mode() == "email":
         missing += [k for k in IMAP_KEYS if not get(k)]

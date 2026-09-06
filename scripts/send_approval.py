@@ -27,11 +27,23 @@ def main() -> int:
 
     verified = [n for s in run.get("sources", []) for n in s.get("numbers", [])]
     personal = run.get("allowed_personal_numbers", [])
+    src_urls, cite_nums = safety.source_licences(run.get("sources", []))
+
+    # Older manifests carried the sources as a separate first comment. Publora
+    # cannot post comments, so fold that text onto the end of every variant —
+    # it is part of the body now, and editable on the approval page.
+    legacy_comment = (run.get("first_comment") or "").strip()
+    if legacy_comment:
+        print("NOTE: this manifest still has 'first_comment'. Appending it to "
+              "each variant body — edit it on the approval page.\n")
 
     variants, gate_reports = [], []
     for v in run["variants"]:
         text = safety.sanitise(v["text"])
-        rep = safety.run_gate(text, verified if v.get("uses_stats") else [], personal)
+        if legacy_comment:
+            text = f"{text}\n\n{legacy_comment}"
+        rep = safety.run_gate(text, verified if v.get("uses_stats") else [],
+                              personal, src_urls, cite_nums)
         gate_reports.append((v["label"], rep))
         variants.append(Variant(v["label"], v["formula"], v["goal"], text))
 
@@ -67,7 +79,6 @@ def main() -> int:
         channel_name=name, channel_id=cid, channel_kind=kind,
         scheduled=run["scheduled_human"],
         variants=variants,
-        first_comment=run["first_comment"],
         sources=[Source(s["claim"], s["org"], s["year"], s["url"], s.get("geography", ""))
                  for s in run.get("sources", [])],
         gate=worst, image_line=run.get("image_line", "none"),

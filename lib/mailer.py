@@ -28,9 +28,87 @@ AGENT_HEADER = "X-LI-Agent-Role"
 
 # --------------------------------------------------------------- sending
 
+# Where the weekly Routines run, outbound TCP is HTTPS-only: port 587 is
+# accepted by the local proxy and then reset at egress, so SMTP cannot work
+# there however good the credentials are. EMAIL_TRANSPORT picks the road out.
+HTTPS_TRANSPORTS = config.HTTPS_PROVIDERS
+
+
 def send(subject: str, html_body: str, text_body: str,
          *, inline_images: dict[str, bytes] | None = None) -> None:
     """Send a multipart/alternative message to APPROVAL_EMAIL."""
+    mode = config.email_transport()
+    if mode in HTTPS_TRANSPORTS:
+        if inline_images:
+            raise MailError(
+                f"The {mode} transport in this repo sends text + HTML only; "
+                "inline images need the attachment API. Reference the image by "
+                "URL instead, or send this one over SMTP."
+            )
+        return _send_https(mode, subject, html_body, text_body)
+    if mode != "smtp":
+        raise MailError(
+            f"EMAIL_TRANSPORT={mode!r} is not one of: smtp, "
+            + ", ".join(HTTPS_TRANSPORTS) + ", auto."
+        )
+    return _send_smtp(subject, html_body, text_body, inline_images=inline_images)
+
+
+def _send_https(provider: str, subject: str, html_body: str, text_body: str) -> None:
+    """Send over an HTTPS email API. One request, no mailbox, no port 587."""
+    import requests
+
+    to_addr = config.require("APPROVAL_EMAIL")
+    from_addr = config.require("APPROVAL_FROM")
+    key = config.require("EMAIL_API_KEY")
+
+    if provider == "resend":
+        url = "https://api.resend.com/emails"
+        headers = {"Authorization": f"Bearer {key}"}
+        payload: Any = {"from": from_addr, "to": [to_addr], "subject": subject,
+                        "html": html_body, "text": text_body,
+                        "headers": {AGENT_HEADER: "outbound"}}
+    elif provider == "brevo":
+        url = "https://api.brevo.com/v3/smtp/email"
+        headers = {"api-key": key}
+        payload = {"sender": {"email": from_addr}, "to": [{"email": to_addr}],
+                   "subject": subject, "htmlContent": html_body,
+                   "textContent": text_body, "headers": {AGENT_HEADER: "outbound"}}
+    elif provider == "postmark":
+        url = "https://api.postmarkapp.com/email"
+        headers = {"X-Postmark-Server-Token": key}
+        payload = {"From": from_addr, "To": to_addr, "Subject": subject,
+                   "HtmlBody": html_body, "TextBody": text_body,
+                   "MessageStream": config.get("POSTMARK_STREAM") or "outbound",
+                   "Headers": [{"Name": AGENT_HEADER, "Value": "outbound"}]}
+    else:  # mailgun — the only one that needs its own domain named
+        domain = config.get("MAILGUN_DOMAIN")
+        if not domain:
+            raise MailError("MAILGUN_DOMAIN is not set; Mailgun sends from a named domain.")
+        url = f"https://api.mailgun.net/v3/{domain}/messages"
+        headers = {}
+        payload = {"from": from_addr, "to": to_addr, "subject": subject,
+                   "html": html_body, "text": text_body,
+                   f"h:{AGENT_HEADER}": "outbound"}
+
+    try:
+        if provider == "mailgun":
+            resp = requests.post(url, auth=("api", key), data=payload, timeout=45)
+        else:
+            resp = requests.post(url, headers=headers, json=payload, timeout=45)
+    except requests.RequestException as exc:
+        raise MailError(f"{provider} send failed: {exc}") from exc
+
+    if resp.status_code in (401, 403):
+        raise MailError(f"{provider} rejected EMAIL_API_KEY ({resp.status_code}). "
+                        f"Check the key and that the sender is verified.")
+    if not resp.ok:
+        # The body names the real problem (unverified sender, unknown domain).
+        raise MailError(f"{provider} {resp.status_code}: {resp.text[:400]}")
+
+
+def _send_smtp(subject: str, html_body: str, text_body: str,
+               *, inline_images: dict[str, bytes] | None = None) -> None:
     to_addr = config.require("APPROVAL_EMAIL")
     from_addr = config.require("APPROVAL_FROM")
 
@@ -77,7 +155,11 @@ def send(subject: str, html_body: str, text_body: str,
             f"(server said: {exc.smtp_code})"
         ) from exc
     except (smtplib.SMTPException, OSError) as exc:
-        raise MailError(f"SMTP send failed via {host}:{port} — {exc}") from exc
+        raise MailError(
+            f"SMTP send failed via {host}:{port} — {exc}. If this is a Claude "
+            "Code session, outbound TCP is HTTPS-only and port 587 is reset at "
+            "egress: set EMAIL_PROVIDER + EMAIL_API_KEY to send over HTTPS."
+        ) from exc
 
 
 # --------------------------------------------------------------- reading

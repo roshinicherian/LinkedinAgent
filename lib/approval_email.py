@@ -34,7 +34,6 @@ class ApprovalEmail:
     channel_kind: str
     scheduled: str
     variants: list[Variant]
-    first_comment: str
     sources: list[Source]
     gate: GateReport
     image_line: str = "none"
@@ -72,7 +71,6 @@ class ApprovalEmail:
         for v in self.variants:
             out += [f"--- VARIANT {v.label} --- ({v.formula}, goal: {v.goal}, "
                     f"{len(v.text)} chars)", "", v.text, ""]
-        out += ["--- FIRST COMMENT ---", "", self.first_comment, ""]
         out += ["--- SOURCES ---", ""]
         if self.sources:
             for s in self.sources:
@@ -136,9 +134,6 @@ class ApprovalEmail:
                 f'{e(v.formula)} · goal: {e(v.goal)} · {len(v.text)} chars</div>'
                 f'<div style="{mono}">{e(v.text)}</div>'
             )
-        parts.append(f'<h3 style="margin:22px 0 6px">FIRST COMMENT</h3>'
-                     f'<div style="{mono}">{e(self.first_comment)}</div>')
-
         parts.append('<h3 style="margin:22px 0 6px">SOURCES</h3>')
         if self.sources:
             parts.append("<ul>" + "".join(

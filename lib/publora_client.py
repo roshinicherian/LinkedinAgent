@@ -251,14 +251,6 @@ def publish(
     return resp.json()
 
 
-def comment(post_urn_or_id: str, text: str) -> dict[str, Any]:
-    """The sources comment. Publora publishes posts but cannot create comments —
-    its LinkedIn comment endpoints are read-only — so this always raises rather
-    than pretending the comment went out. Post it by hand from the run manifest.
-    """
-    raise PubloraError(
-        "Publora has no create-comment endpoint (its LinkedIn comment API is "
-        f"read-only), so the first comment on {post_urn_or_id} cannot be posted "
-        "by this agent. Post it by hand — the text is in the run manifest under "
-        "'first_comment'."
-    )
+# There is deliberately no comment() here. Publora cannot create comments (its
+# LinkedIn comment API is read-only), so the sources that used to go out as a
+# first comment are part of the post body, editable on the approval page.
