@@ -45,13 +45,22 @@ account?" read is still done by hand before the email goes out.
 
 Two modes, set by `APPROVAL_MODE`.
 
-**`web` (default).** The agent publishes an approval page and emails you the
-link. Sending only — no mailbox password anywhere. The page shows the resolved
-publish target, both variants with LinkedIn's 210-character fold drawn in, the
-gate results, sources and first comment. You tap Approve A / Approve B / Skip,
-or paste your own copy; it confirms before recording, because approving
-publishes for real. The decision is written to the page's store and read back
-by the Thursday run.
+**`web` (default).** The agent publishes an approval page (from
+`templates/approval-console.html`) and emails you the link. Sending only — no
+mailbox password anywhere.
+
+Both variants are **directly editable on the page**. As you type it re-renders
+what survives LinkedIn's 210-character "see more" fold, updates the character
+count against the 900–1,300 target and the 1,600 ceiling, and flags banned
+phrases, question hooks, body links, hashtag overruns and US spellings. Those
+browser flags are advisory; `safety.py` remains the authority and runs again
+before anything is sent.
+
+Approving publishes **exactly what is in the box**. If you changed a word, the
+decision is stored with `edited: true` and your wording is treated as final —
+the gate runs on it, but nothing is rewritten. It asks you to confirm first,
+and any keystroke cancels a pending confirm so you can never publish text you
+just changed. The decision is read back by the Thursday run.
 
 **`email`.** Reply to the draft; IMAP reads it, matched by the `#<run-id>`
 subject token. Only the **envelope sender** in `APPROVAL_ALLOWED_SENDER` is
@@ -84,6 +93,8 @@ scripts/
   dry_run_channel.py        step 3 — prove the target; publishes nothing
   send_approval.py          gate + email a run manifest
   await_approval.py         poll, act, publish, log
+templates/
+  approval-console.html   the editable approval page published each week
 runs/                 one JSON manifest per week
 drafts/               the week's variants in readable form
 voice-profile.md  content-plan.md  post-log.md  stats-used.md  hook-library.md

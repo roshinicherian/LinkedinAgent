@@ -1,0 +1,553 @@
+<title>Draft Approval Console</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#F5F7F9; --surface:#FFFFFF; --surface-2:#EDF1F5;
+    --ink:#14212C; --ink-2:#4A5C6B; --ink-3:#7A8B98;
+    --line:#DBE3EA; --line-strong:#C2CEd8;
+    --accent:#0F4C81; --accent-ink:#FFFFFF; --accent-soft:#E7EFF7;
+    --pass:#1B6F52; --pass-soft:#E4F1EB;
+    --warn:#8A5512; --warn-soft:#FaF0E2;
+    --stop:#9A2B21; --stop-soft:#F8E7E5;
+    --fold:#C0392B;
+    --shadow:0 1px 2px rgba(20,33,44,.06),0 6px 20px rgba(20,33,44,.06);
+    --r:10px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0D151C; --surface:#151F29; --surface-2:#1D2934;
+      --ink:#E6EDF3; --ink-2:#A3B3C1; --ink-3:#75879a;
+      --line:#26333F; --line-strong:#374857;
+      --accent:#5A9BD4; --accent-ink:#0B1219; --accent-soft:#17293A;
+      --pass:#6FCFA6; --pass-soft:#122A22;
+      --warn:#E0AE6A; --warn-soft:#2B2113;
+      --stop:#EF8B80; --stop-soft:#2E1714;
+      --fold:#E8756A;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0D151C; --surface:#151F29; --surface-2:#1D2934;
+    --ink:#E6EDF3; --ink-2:#A3B3C1; --ink-3:#75879a;
+    --line:#26333F; --line-strong:#374857;
+    --accent:#5A9BD4; --accent-ink:#0B1219; --accent-soft:#17293A;
+    --pass:#6FCFA6; --pass-soft:#122A22;
+    --warn:#E0AE6A; --warn-soft:#2B2113;
+    --stop:#EF8B80; --stop-soft:#2E1714;
+    --fold:#E8756A;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:15px; line-height:1.55; margin:0;
+    padding:28px 20px 120px;
+  }
+  .wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+
+  .eyebrow{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-3);
+  }
+  h1{font-size:26px;line-height:1.2;margin:4px 0 0;font-weight:700;text-wrap:balance}
+  h2{font-size:15px;margin:0;font-weight:600;letter-spacing:-.01em}
+
+  /* ---- target verification: the one thing that must not be missed ---- */
+  .target{
+    border:1px solid var(--line); border-left:5px solid var(--pass);
+    background:var(--surface); border-radius:var(--r);
+    padding:16px 18px; box-shadow:var(--shadow);
+    display:flex; flex-wrap:wrap; gap:18px 34px; align-items:flex-start;
+  }
+  .target[data-ok="false"]{border-left-color:var(--stop)}
+  .tfield{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .tlabel{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+          text-transform:uppercase;color:var(--ink-3)}
+  .tval{font-size:14px;font-weight:600;word-break:break-all}
+  .tval.mono{font-family:"IBM Plex Mono",monospace;font-weight:400;font-size:12.5px}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;align-self:center;
+    font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;
+    background:var(--pass-soft);color:var(--pass);
+    border:1px solid color-mix(in srgb,var(--pass) 28%,transparent);
+    white-space:nowrap;
+  }
+  .pill.stop{background:var(--stop-soft);color:var(--stop);
+             border-color:color-mix(in srgb,var(--stop) 28%,transparent)}
+  .pill.warn{background:var(--warn-soft);color:var(--warn);
+             border-color:color-mix(in srgb,var(--warn) 28%,transparent)}
+
+  /* ---- gate strip ---- */
+  .gate{display:flex;flex-wrap:wrap;gap:8px}
+  .check{
+    display:flex;align-items:center;gap:7px;background:var(--surface);
+    border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:12.5px;
+  }
+  .check b{font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--pass);flex:none}
+  .dot.stop{background:var(--stop)}
+
+  /* ---- variants ---- */
+  .variants{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:18px}
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    display:flex;flex-direction:column;box-shadow:var(--shadow);overflow:hidden;
+  }
+  .card.chosen{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft),var(--shadow)}
+  .chead{
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+    padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface-2);
+  }
+  .badge{
+    font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;
+    background:var(--accent);color:var(--accent-ink);
+    padding:3px 9px;border-radius:5px;
+  }
+  .meta{font-size:12.5px;color:var(--ink-2);font-family:"IBM Plex Mono",monospace}
+  .meta .sep{color:var(--ink-3);padding:0 3px}
+
+  /* post body renders like the destination, not like this console */
+  .post{
+    padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;flex:1;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:14.5px;line-height:1.5;
+  }
+  .fold{
+    display:block;border-top:1px dashed var(--fold);
+    margin:9px 0 3px;padding-top:5px;
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--fold);
+  }
+  .cfoot{padding:13px 18px;border-top:1px solid var(--line);display:flex;gap:10px;
+         flex-wrap:wrap;align-items:center}
+
+  /* editing surface */
+  .foldbox{margin:0 18px;padding:11px 13px;border-radius:8px;
+           background:var(--surface-2);border:1px dashed var(--line-strong)}
+  .foldlabel{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+             text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:6px}
+  .foldtext{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+            font-size:13.5px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;
+            color:var(--ink)}
+  .foldtext .over{color:var(--ink-3)}
+  .foldcut{color:var(--fold);font-family:"IBM Plex Mono",monospace;font-size:11px}
+
+  .editor{
+    width:calc(100% - 36px);margin:9px 18px 0;
+    border:1px solid var(--line-strong);border-radius:8px;
+    background:var(--ground);color:var(--ink);padding:14px 15px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:14.5px;line-height:1.5;resize:none;overflow:hidden;display:block;
+    min-height:120px;
+  }
+  .editor:hover{border-color:var(--accent)}
+  .editor:focus{outline:2px solid var(--accent);outline-offset:-1px;
+                background:var(--surface);border-color:var(--accent)}
+  .editor[readonly]{background:var(--surface-2);border-style:dashed;color:var(--ink-2)}
+  .editnote{color:var(--ink-3);font-family:"IBM Plex Mono",monospace;font-size:11px;
+            letter-spacing:.04em}
+  .card:focus-within{border-color:var(--accent)}
+
+  .counts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+          padding:10px 18px 0;font-family:"IBM Plex Mono",monospace;font-size:11.5px}
+  .cnt{padding:3px 9px;border-radius:5px;background:var(--surface-2);color:var(--ink-2)}
+  .cnt.ok{background:var(--pass-soft);color:var(--pass)}
+  .cnt.warn{background:var(--warn-soft);color:var(--warn)}
+  .cnt.stop{background:var(--stop-soft);color:var(--stop)}
+  .edited{font-size:11px;font-weight:600;color:var(--accent);
+          font-family:"IBM Plex Mono",monospace;letter-spacing:.06em;text-transform:uppercase}
+
+  .flags{padding:9px 18px 0;display:flex;flex-direction:column;gap:5px}
+  .flag{font-size:12.5px;color:var(--warn);display:flex;gap:7px;align-items:flex-start}
+  .flag::before{content:"!";font-weight:700;font-family:"IBM Plex Mono",monospace;
+                color:var(--warn);flex:none}
+  .btn-reset{background:none;border:0;color:var(--ink-3);font-size:12.5px;
+             text-decoration:underline;padding:4px 2px}
+  .btn-reset:hover{color:var(--ink)}
+
+  button{font:inherit;cursor:pointer;border-radius:7px;transition:filter .12s,background .12s}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn-go{
+    background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);
+    padding:9px 17px;font-weight:600;font-size:14px;
+  }
+  .btn-go:hover:not(:disabled){filter:brightness(1.12)}
+  .btn-2{
+    background:transparent;color:var(--ink-2);border:1px solid var(--line-strong);
+    padding:9px 15px;font-size:13.5px;
+  }
+  .btn-2:hover:not(:disabled){background:var(--surface-2);color:var(--ink)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+
+  /* ---- panels ---- */
+  .panel{background:var(--surface);border:1px solid var(--line);
+         border-radius:var(--r);padding:17px 19px;box-shadow:var(--shadow)}
+  .panel h2{margin-bottom:11px}
+  .src{display:flex;flex-direction:column;gap:5px;font-size:13.5px}
+  .src + .src{margin-top:13px;padding-top:13px;border-top:1px solid var(--line)}
+  .src a{color:var(--accent);word-break:break-all}
+  .src .who{font-weight:600}
+  .src .geo{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
+            text-transform:uppercase;letter-spacing:.08em}
+  .comment{
+    white-space:pre-wrap;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:13.5px;line-height:1.5;background:var(--surface-2);
+    border:1px solid var(--line);border-radius:8px;padding:13px;overflow-wrap:anywhere;
+  }
+  ul.notes{margin:0;padding-left:19px;display:flex;flex-direction:column;gap:8px;
+           font-size:13.5px;color:var(--ink-2)}
+
+  textarea{
+    width:100%;min-height:190px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:14px;line-height:1.5;padding:12px;border-radius:8px;
+    border:1px solid var(--line-strong);background:var(--ground);color:var(--ink);resize:vertical;
+  }
+  textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+  /* ---- decision bar ---- */
+  .bar{
+    position:sticky;bottom:0;margin:0 -20px -120px;padding:14px 20px;
+    background:color-mix(in srgb,var(--surface) 92%,transparent);
+    backdrop-filter:blur(9px);border-top:1px solid var(--line);
+    display:flex;gap:13px;align-items:center;flex-wrap:wrap;
+  }
+  .status{font-size:13.5px;color:var(--ink-2);flex:1;min-width:220px}
+  .status b{color:var(--ink)}
+
+  .banner{
+    border-radius:var(--r);padding:14px 17px;font-size:14px;
+    border:1px solid color-mix(in srgb,var(--pass) 30%,transparent);
+    background:var(--pass-soft);color:var(--pass);font-weight:500;
+  }
+  .banner.warn{border-color:color-mix(in srgb,var(--warn) 30%,transparent);
+               background:var(--warn-soft);color:var(--warn)}
+  .foot{font-size:12.5px;color:var(--ink-3);text-align:center;padding-top:6px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Run 01 &middot; 2026-09-10 &middot; Pillar 1 — AI in marketing practice</div>
+    <h1>This week's post needs your call</h1>
+  </header>
+
+  <div class="target" id="target" data-ok="true">
+    <div class="tfield">
+      <span class="tlabel">Publishing to</span>
+      <span class="tval" id="ch-name">Resolved at publish time</span>
+    </div>
+    <div class="tfield">
+      <span class="tlabel">Platform ID</span>
+      <span class="tval mono" id="ch-id">from LINKEDIN_PLATFORM_ID</span>
+    </div>
+    <div class="tfield">
+      <span class="tlabel">Scheduled</span>
+      <span class="tval">Immediately on approval <span style="font-weight:400;color:var(--ink-2)">(test run)</span></span>
+    </div>
+    <span class="pill" id="ch-kind">Personal profile &mdash; verified</span>
+  </div>
+
+  <div class="gate" id="gate"></div>
+
+  <div class="variants" id="variants"></div>
+
+  <div class="panel">
+    <h2>First comment, posted immediately after</h2>
+    <div class="comment" id="comment"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Sources</h2>
+    <div id="sources"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Before you decide</h2>
+    <ul class="notes" id="notes"></ul>
+  </div>
+
+  <div class="bar">
+    <div class="status" id="status">Edit freely — nothing is published until you approve. Your wording is published exactly as you leave it.</div>
+    <button class="btn-2" id="btn-skip">Skip this week</button>
+  </div>
+
+  <div class="foot">Edit either post directly above. Approving records your final wording here; the agent publishes it and emails you the live link.</div>
+</div>
+
+<script>
+const RUN = {
+  id: "01",
+  variants: [
+    { label: "A", formula: "F17 Controlled A/B Anecdote", goal: "comments", stats: "no statistic",
+      text: `Two briefs for the same product page. One came back usable. One came back as a brochure.
+
+The second brief had one extra line: the objections the sales team hears on every call.
+
+Same product. Same writer. Same twenty minutes. The only variable was whether the AI knew what the buyer was sceptical about.
+
+For technical products that gap is wider than anywhere else I work. The person reading a spec page has usually specified this category before. They know the tolerances, and they can tell inside a sentence whether the writer has been on site or only on the website.
+
+AI writes fluently at exactly the level of generality that reads as never having been on site. It doesn't know what a plant manager is quietly worried about, and it won't think to ask.
+
+So the work moved rather than disappeared. I spend longer on the brief now and almost no time rewriting the draft, and most of that brief is questions I had to put to someone who actually does the job.
+
+What's the one line in your brief that changes the output most?
+
+#b2bmarketing #aimarketing` },
+    { label: "B", formula: "F16 Status-Strip Humility", goal: "likes / warmth", stats: "1 verified stat",
+      text: `Ten years into B2B marketing, and the fastest edit I ever got came from a sales engineer who doesn't write for a living.
+
+I'd written a paragraph about how a component performed under load. Technically accurate. He crossed the whole thing out and wrote one sentence about the failure it prevents. His version was better and it took him about forty seconds.
+
+That gap turns up every time I brief AI on a technical product now. The draft comes back articulate and slightly hollow, because the model has read a thousand pages about the category and has never stood next to the thing when it fails.
+
+Worth remembering that most buyers in these categories aren't AI-native either. The ABS put business AI use in Australia at 12% in 2024-25, up from 1% three years earlier, with IT, media and telcos leading adoption. The categories I work in aren't in that leading group.
+
+So generic reads as generic much faster here than it does in software.
+
+AI doesn't write the first draft of anything a specialist will read for me anymore. It interrogates my brief instead, and I take the questions to the person who knows.
+
+Who's the person outside marketing whose edits you trust most?
+
+#b2bmarketing #manufacturing` }
+  ],
+  checks: [
+    ["Client scrub","pass"],["Negativity","pass"],["Politics / religion","pass"],
+    ["Stats verified","pass"],["Craft","pass"]
+  ],
+  comment: `Source for the adoption figure, if you want to dig in:
+
+Australian Bureau of Statistics, Characteristics of Australian Business 2024-25 (Business Characteristics Survey, ~7,000 businesses):
+https://www.abs.gov.au/media-centre/media-releases/business-adoption-artificial-intelligence-accelerates-2024-25
+
+The practical version of the brief change: I now write down the three things a buyer is most likely to push back on before I write anything else. It's the only part of the brief I won't let AI draft for me.`,
+  sources: [{
+    who: "Australian Bureau of Statistics",
+    what: "Characteristics of Australian Business, 2024–25 (Business Characteristics Survey, ~7,000 businesses). 12% of Australian businesses used AI in 2024–25, up from 1% in 2021–22; IT, media and telcos led adoption.",
+    geo: "Australia · 2026",
+    url: "https://www.abs.gov.au/media-centre/media-releases/business-adoption-artificial-intelligence-accelerates-2024-25"
+  }],
+  notes: [
+    "Variant A carries no statistic on purpose — it's a process argument, and a number would be decoration.",
+    "You hadn't sent week input, so neither variant claims anything happened this week. Both read as recurring practice, not a dated anecdote.",
+    "Variant B's sales-engineer moment is deliberately generic — no client, sector or product is identifiable. Check it reads true to you.",
+    "The ABS page couldn't be opened directly from the agent's sandbox (the egress proxy blocks abs.gov.au). The figure was triangulated across two independent live searches quoting the ABS domain — the primary link above is for you to click."
+  ]
+};
+
+const FOLD = 210;
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (t) => t.replace(/[&<>"']/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let db = null, decided = null;
+
+/* ---------- render ---------- */
+$("gate").innerHTML = RUN.checks.map(([n, s]) =>
+  `<span class="check"><span class="dot${s === "pass" ? "" : " stop"}"></span>` +
+  `${n} <b>${s.toUpperCase()}</b></span>`).join("");
+
+$("comment").textContent = RUN.comment;
+
+$("sources").innerHTML = RUN.sources.map(s =>
+  `<div class="src"><span class="who">${s.who}</span>` +
+  `<span class="geo">${s.geo}</span><span>${s.what}</span>` +
+  `<a href="${s.url}" target="_blank" rel="noopener">${s.url}</a></div>`).join("");
+
+$("notes").innerHTML = RUN.notes.map(n => `<li>${n}</li>`).join("");
+
+$("variants").innerHTML = RUN.variants.map(v => `
+  <article class="card" id="card-${v.label}">
+    <div class="chead">
+      <span class="badge">Variant ${v.label}</span>
+      <span class="meta">${v.formula}<span class="sep">&middot;</span>${v.goal}<span class="sep">&middot;</span>${v.text.length} chars<span class="sep">&middot;</span>${v.stats}</span>
+    </div>
+    <div class="counts" id="counts-${v.label}"></div>
+    <textarea class="editor" id="post-${v.label}" spellcheck="true"
+              aria-label="Variant ${v.label} post text, editable">${escapeHtml(v.text)}</textarea>
+    <div class="foldbox">
+      <span class="foldlabel">What shows before &ldquo;see more&rdquo;</span>
+      <div class="foldtext" id="fold-${v.label}"></div>
+    </div>
+    <div class="flags" id="flags-${v.label}"></div>
+    <div class="cfoot">
+      <button class="btn-go" data-pick="${v.label}">Approve ${v.label} &amp; publish</button>
+      <button class="btn-reset" data-reset="${v.label}" hidden>Reset to original</button>
+    </div>
+  </article>`).join("");
+
+
+/* ---------- live editing ---------- */
+// Advisory only. The authoritative safety gate runs in Python before publishing.
+const BANNED = ["let that sink in","here's the thing","game-changer","game changer",
+  "in today's fast-paced","i was recently reminded","unpopular opinion","hot take",
+  "the result?","plot twist","deep dive","leverage","fundamentally","tag someone who",
+  "stop scrolling","let me be honest","confession:","what nobody tells you",
+  "what most people miss","the real question is"];
+const US_SPELLING = [["optimize","optimise"],["personalize","personalise"],
+  ["analyze","analyse"],["organize","organise"],["realize","realise"],
+  ["behavior","behaviour"],["favorite","favourite"]];
+
+function advise(text) {
+  const out = [];
+  const low = text.toLowerCase();
+  const lines = text.split("\n").filter(l => l.trim());
+  const hook = lines[0] || "";
+
+  BANNED.forEach(p => { if (low.includes(p)) out.push(`Banned phrase: \u201C${p}\u201D`); });
+  US_SPELLING.forEach(([us, au]) => {
+    if (new RegExp("\\b" + us).test(low)) out.push(`US spelling \u201C${us}\u201D \u2014 use \u201C${au}\u201D`);
+  });
+  if (hook.trim().endsWith("?")) out.push("Hook is a question \u2014 move it to the close");
+  if (hook.length > FOLD) out.push(`Hook is ${hook.length} chars \u2014 it won't survive the ${FOLD}-char fold`);
+  if (hook && hook === hook.toUpperCase() && /[A-Z]/.test(hook)) out.push("Hook is all caps");
+  if (/https?:\/\/|www\./.test(text)) out.push("Link in the body \u2014 links belong in the first comment");
+  const tags = text.match(/(?:^|\s)#\w+/g) || [];
+  if (tags.length > 3) out.push(`${tags.length} hashtags \u2014 the cap is 3`);
+  if (/\bit(?:'s| is) not\b[^.?!]{3,60}\bit(?:'s| is)\b/i.test(text))
+    out.push("\u201Cit's not X, it's Y\u201D framing");
+  return out;
+}
+
+function refresh(label) {
+  const v = RUN.variants.find(x => x.label === label);
+  const ta = $("post-" + label);
+  const text = ta.value;
+
+  ta.style.height = "auto";
+  ta.style.height = ta.scrollHeight + "px";
+
+  // what survives the fold
+  const fold = $("fold-" + label);
+  fold.textContent = "";
+  fold.appendChild(document.createTextNode(text.slice(0, FOLD)));
+  if (text.length > FOLD) {
+    const cut = document.createElement("span");
+    cut.className = "foldcut";
+    cut.textContent = "  \u2026 see more";
+    fold.appendChild(cut);
+  }
+
+  // counts
+  const n = text.length;
+  let cls = "ok", note = "in the sweet spot";
+  if (n > 1600) { cls = "stop"; note = "over the 1,600 hard ceiling"; }
+  else if (n > 1300 || n < 900) { cls = "warn"; note = "outside 900\u20131,300"; }
+  const dirty = text !== v.text;
+  $("counts-" + label).innerHTML =
+    '<span class="editnote">Editable \u2014 change any wording before you approve</span>' +
+    `<span class="cnt ${cls}">${n} chars \u2014 ${note}</span>` +
+    (dirty ? '<span class="edited">edited</span>' : "");
+
+  // advisory flags
+  const flags = advise(text);
+  $("flags-" + label).innerHTML = flags.map(f => `<div class="flag">${escapeHtml(f)}</div>`).join("");
+
+  document.querySelector(`[data-reset="${label}"]`).hidden = !dirty;
+
+  // any edit cancels a pending confirm, so you never publish text you just changed
+  const btn = document.querySelector(`[data-pick="${label}"]`);
+  if (btn.dataset.confirm === "1") {
+    btn.dataset.confirm = "";
+    btn.textContent = "Approve " + label + " & publish";
+  }
+}
+
+RUN.variants.forEach(v => {
+  const ta = $("post-" + v.label);
+  ta.addEventListener("input", () => refresh(v.label));
+  document.querySelector(`[data-reset="${v.label}"]`).addEventListener("click", () => {
+    ta.value = v.text; refresh(v.label);
+  });
+  refresh(v.label);
+});
+
+/* ---------- decision ---------- */
+function paint(d) {
+  decided = d;
+  document.querySelectorAll(".card").forEach(c => c.classList.remove("chosen"));
+  document.querySelectorAll("[data-pick]").forEach(b => { b.disabled = false; });
+  const st = $("status");
+  if (!d) return;
+  if (d.decision === "SKIP") {
+    st.innerHTML = "<b>Skipped.</b> No post goes out this week. The agent logs it and won't ask again.";
+  } else if (d.decision === "EDIT") {
+    st.innerHTML = "<b>Your copy submitted.</b> The agent runs the safety gate on it, unchanged, then publishes.";
+  } else {
+    const card = $("card-" + d.decision);
+    if (card) card.classList.add("chosen");
+    if (d.text) {
+      const ta = $("post-" + d.decision);
+      if (ta && ta.value.trim() !== d.text) { ta.value = d.text; refresh(d.decision); }
+    }
+    st.innerHTML = `<b>Variant ${d.decision} approved${d.edited ? ", with your edits" : ""}.</b> ` +
+      (d.edited
+        ? "Your wording is published as written \u2014 the safety gate runs on it, but nothing is rewritten. "
+        : "") +
+      "The agent publishes it, posts the sources comment, and emails you the live link.";
+  }
+  document.querySelectorAll(".editor").forEach(t => { t.readOnly = true; });
+  document.querySelectorAll("[data-reset]").forEach(b => { b.hidden = true; });
+  document.querySelectorAll("[data-pick]").forEach(b => { b.disabled = true; });
+  $("btn-skip").disabled = true;
+}
+
+async function record(decision, textOverride) {
+  let text = textOverride || "";
+  let edited = Boolean(textOverride);
+  if (decision === "A" || decision === "B") {
+    const v = RUN.variants.find(x => x.label === decision);
+    text = $("post-" + decision).value.trim();
+    edited = text !== v.text;
+  }
+  const payload = {
+    decision, run_id: RUN.id,
+    text, edited,
+    edited_text: edited ? text : "",
+    decided_at: new Date().toISOString()
+  };
+  if (!db) {
+    $("status").innerHTML =
+      "<b>Couldn't save.</b> This page can't reach its store right now — tell the agent your choice directly.";
+    return;
+  }
+  try {
+    await db.doc("approvals/run-" + RUN.id).set(payload);
+    paint(payload);
+  } catch (e) {
+    $("status").innerHTML =
+      "<b>Couldn't save that.</b> " + (e && e.message ? e.message : "Try again, or tell the agent directly.");
+  }
+}
+
+document.querySelectorAll("[data-pick]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const label = btn.dataset.pick;
+    if (btn.dataset.confirm === "1") { record(label); return; }
+    document.querySelectorAll("[data-pick]").forEach(b => {
+      b.dataset.confirm = ""; b.textContent = "Approve " + b.dataset.pick + " & publish";
+      b.classList.remove("btn-2"); b.classList.add("btn-go");
+    });
+    btn.dataset.confirm = "1";
+    const v = RUN.variants.find(x => x.label === label);
+    const changed = $("post-" + label).value.trim() !== v.text;
+    btn.textContent = changed
+      ? "Sure? This publishes your edited Variant " + label
+      : "Sure? This publishes Variant " + label;
+  });
+});
+
+$("btn-skip").addEventListener("click", () => record("SKIP"));
+
+/* ---------- store ---------- */
+(async () => {
+  db = await window.claude?.use?.("db");
+  if (!db) return;
+  try {
+    const snap = await db.doc("approvals/run-" + RUN.id).get();
+    if (snap && snap.exists && snap.data && snap.data.decision) paint(snap.data);
+  } catch (e) { /* first load, nothing stored yet */ }
+})();
+</script>
