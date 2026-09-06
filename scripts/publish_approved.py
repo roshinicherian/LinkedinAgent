@@ -73,7 +73,7 @@ def main() -> int:
     url = res.get("url") or res.get("postUrl") or ""
     print("Published." if args.now else f"Scheduled for {run['scheduled_iso']}.")
 
-    pid = res.get("id") or res.get("postId")
+    pid = res.get("postGroupId") or res.get("id") or res.get("postId")
     if run.get("first_comment") and pid:
         try:
             pub.comment(pid, run["first_comment"])

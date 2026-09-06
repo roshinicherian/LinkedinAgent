@@ -19,11 +19,16 @@ until the credentials in it exist.
 | **Wed 20:00** | **Publishes the approval page and emails you the link** |
 | Thu 06:00 | Reminder if nothing decided yet |
 | Thu 06:30 | Hard cutoff. **No decision = no post.** |
-| **Thu 07:45** | **Publish + first comment with sources** |
+| **Thu 07:45** | **Publish + first comment with sources** (the comment is posted by hand — see below) |
 | Fri | Engager analytics, warm-thread flags, reply drafts (all emailed for approval) |
 
 The schedule runs as four Routines — see [`SCHEDULE.md`](SCHEDULE.md), which
 also carries the daylight-saving change due 4 October 2026.
+
+Publora publishes posts but cannot create comments — its LinkedIn comment API is
+read-only — so `publora_client.comment()` always raises with the run's
+`first_comment` text and asks you to paste it under the post yourself. The
+publish scripts print that message; nothing is silently skipped.
 
 ## The four non-negotiables, as code
 

@@ -56,14 +56,16 @@ class Channel:
 
 def _headers() -> dict[str, str]:
     return {
-        "Authorization": f"Bearer {config.require('PUBLORA_API_KEY')}",
+        "x-publora-key": config.require("PUBLORA_API_KEY"),
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
 
 
 def _base() -> str:
-    return (config.get("PUBLORA_BASE_URL") or "https://api.publora.com").rstrip("/")
+    """Base URL including Publora's /api/v1 prefix."""
+    root = (config.get("PUBLORA_BASE_URL") or "https://api.publora.com").rstrip("/")
+    return root if root.endswith("/api/v1") else f"{root}/api/v1"
 
 
 def _first(d: dict[str, Any], *keys: str) -> Any:
@@ -96,6 +98,15 @@ def _classify(raw_type: str, blob: dict[str, Any]) -> str:
     for key in ("isPersonal", "is_personal", "isProfile", "is_profile", "isMember"):
         if blob.get(key) is True:
             return "personal"
+
+    # Publora's platform-connections payload carries no type field, but the
+    # profile URL says it plainly: /in/ is a member, /company/ is a page.
+    url = str(_first(blob, "profileUrl", "profile_url", "url", "permalink") or "").lower()
+    if url:
+        if "/company/" in url or "/showcase/" in url or "/school/" in url:
+            return "organisation"
+        if "/in/" in url:
+            return "personal"
     return "unknown"
 
 
@@ -103,6 +114,9 @@ def _normalise(blob: dict[str, Any]) -> Channel:
     pid = _first(blob, "platformId", "platform_id", "id", "channelId", "channel_id")
     name = _first(blob, "name", "displayName", "display_name", "title", "handle", "username")
     platform = _first(blob, "platform", "network", "provider", "type") or ""
+    # Publora identifies the network in the ID itself: "linkedin-yuV7gdcpIY".
+    if not platform and pid and "-" in str(pid):
+        platform = str(pid).split("-", 1)[0]
     raw_type = _first(
         blob, "accountType", "account_type", "channelType", "channel_type",
         "entityType", "entity_type", "kind", "subtype",
@@ -119,7 +133,7 @@ def _normalise(blob: dict[str, Any]) -> Channel:
 
 def list_channels_raw() -> Any:
     """Return the untouched channels payload, for shape inspection."""
-    url = f"{_base()}/v1/channels"
+    url = f"{_base()}/platform-connections"
     try:
         resp = requests.get(url, headers=_headers(), timeout=TIMEOUT)
     except requests.RequestException as exc:
@@ -139,7 +153,7 @@ def list_channels_raw() -> Any:
 def list_channels() -> list[Channel]:
     payload = list_channels_raw()
     if isinstance(payload, dict):
-        for key in ("channels", "data", "results", "items", "accounts"):
+        for key in ("connections", "channels", "data", "results", "items", "accounts"):
             if isinstance(payload.get(key), list):
                 payload = payload[key]
                 break
@@ -217,7 +231,7 @@ def publish(
 
     body: dict[str, Any] = {
         "content": draft_text,
-        "platforms": [{"platform": "linkedin", "platformId": channel.platform_id}],
+        "platforms": [channel.platform_id],
     }
     if scheduled_time:
         body["scheduledTime"] = scheduled_time
@@ -227,7 +241,7 @@ def publish(
     if dry_run:
         return {"dry_run": True, "target": asdict(channel) | {"raw": "<omitted>"}, "body": body}
 
-    url = f"{_base()}/v1/posts"
+    url = f"{_base()}/create-post"
     try:
         resp = requests.post(url, headers=_headers(), json=body, timeout=TIMEOUT)
     except requests.RequestException as exc:
@@ -238,11 +252,13 @@ def publish(
 
 
 def comment(post_urn_or_id: str, text: str) -> dict[str, Any]:
-    """Post the sources comment on our own post."""
-    resolve_target()
-    url = f"{_base()}/v1/comments"
-    body = {"postId": post_urn_or_id, "content": text}
-    resp = requests.post(url, headers=_headers(), json=body, timeout=TIMEOUT)
-    if not resp.ok:
-        raise PubloraError(f"Publora {resp.status_code} on comment: {resp.text[:400]}")
-    return resp.json()
+    """The sources comment. Publora publishes posts but cannot create comments —
+    its LinkedIn comment endpoints are read-only — so this always raises rather
+    than pretending the comment went out. Post it by hand from the run manifest.
+    """
+    raise PubloraError(
+        "Publora has no create-comment endpoint (its LinkedIn comment API is "
+        f"read-only), so the first comment on {post_urn_or_id} cannot be posted "
+        "by this agent. Post it by hand — the text is in the run manifest under "
+        "'first_comment'."
+    )

@@ -58,7 +58,8 @@ def main() -> int:
                     return 1
                 res = _publish(variant["text"], run, args.publish_now)
                 url = res.get("url") or res.get("postUrl") or ""
-                if run.get("first_comment") and (pid := res.get("id") or res.get("postId")):
+                if run.get("first_comment") and (pid := res.get("postGroupId")
+                                                 or res.get("id") or res.get("postId")):
                     try:
                         pub.comment(pid, run["first_comment"])
                         print("First comment posted.")

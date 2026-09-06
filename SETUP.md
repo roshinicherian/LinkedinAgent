@@ -144,6 +144,12 @@ continue unless exactly one LinkedIn channel is connected, its ID matches
 `LINKEDIN_PLATFORM_ID` character-for-character, and it is a personal profile.
 **Confirm the name it prints is you.** Only then does anything get published.
 
+Step 2 needs outbound SMTP on port 587. A Claude Code Remote session allows
+HTTPS only, so `send_test_email.py` fails there with a connection timeout no
+matter how good the credentials are — run it from a machine with SMTP egress,
+or from the box that will run the weekly Routines. Steps 1 and 3, and the
+safety gate, all run fine in a remote session.
+
 ---
 
 ## What is already done
