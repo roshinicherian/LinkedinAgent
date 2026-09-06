@@ -51,28 +51,75 @@ Default model is `flux-schnell` (cheap). The agent refuses to touch a premium
 model such as `gpt-5-image` unless you say yes in writing first, and reports
 cost and remaining balance in the approval email.
 
-## 4. Tell the agent the values
+## 4. Where to paste the values
 
-**If you're running this in Claude Code on the web** (recommended, since the
-schedule needs to survive this session): add them as **environment variables on
-the environment**, not as a file. A fresh cloud session clones the repo but will
-not have a local `.env`.
+**Not into the Claude chat.** Anything pasted there is stored in the conversation
+and is lost when the container is recycled. Use one of these instead.
 
-  claude.ai/code → your environment → **Environment variables** → add each key.
+### Option A — environment variables (use this one)
 
-**If you're running locally:**
+This is the only route that survives. Each weekly run fires a brand new cloud
+session that clones the repo from GitHub; it will never have a local file, but it
+*will* inherit the environment's variables.
 
-    cp .env.example .env
-    # fill it in, then:
+1. Go to **https://claude.ai/code**
+2. Open **Environments** → the environment named **Default**
+   (`env_01AYVtUpmpU8Jv84GLGgZP2A` — the one this session is running in)
+3. Find **Environment variables** → **Add variable**
+4. Add each row below as a separate name/value pair, then save.
+
+| Name | Value |
+|------|-------|
+| `PUBLORA_API_KEY` | your Publora API key |
+| `LINKEDIN_PLATFORM_ID` | the LinkedIn channel ID from Publora, exactly as shown |
+| `APPROVAL_EMAIL` | `roshiniaiagent@gmail.com` |
+| `APPROVAL_FROM` | `roshiniaiagent@gmail.com` |
+| `APPROVAL_ALLOWED_SENDER` | `roshiniaiagent@gmail.com` |
+| `SMTP_HOST` | `smtp.gmail.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | `roshiniaiagent@gmail.com` |
+| `SMTP_PASSWORD` | your 16-character Gmail App Password |
+| `IMAP_HOST` | `imap.gmail.com` |
+| `IMAP_PORT` | `993` |
+| `IMAP_USER` | `roshiniaiagent@gmail.com` |
+| `IMAP_PASSWORD` | **the same** App Password again |
+| `TIMEZONE` | `Australia/Sydney` |
+| `PIXFARO_TOKEN` | optional — only for images |
+
+`SMTP_PASSWORD` and `IMAP_PASSWORD` are the *same* 16-character App Password.
+Gmail issues one credential that covers both. Remove the spaces Google shows it
+with.
+
+### Option B — a local `.env` (only if you run this on your own machine)
+
+    cp .env.example .env      # most values are already filled in
+    # add the three secrets, then:
     pip install -r requirements.txt
 
-`.env` is gitignored. Never commit it, and the agent never prints, logs or
-emails a credential.
+`.env` is gitignored and must never be committed.
+
+## 4b. About IMAP
+
+You mentioned doing this before without IMAP. Worth knowing: **IMAP is not an
+extra credential and costs nothing.** The App Password you already have is the
+same one that reads mail. IMAP is just a checkbox:
+
+  Gmail (logged in as roshiniaiagent@gmail.com) → ⚙ **See all settings** →
+  **Forwarding and POP/IMAP** → **Enable IMAP** → **Save Changes**
+
+That is the whole step. Without it the agent can send you a draft but cannot see
+your reply, which means it can never publish — it fails closed by design.
+
+Because the agent emails *itself* at this address, its own outgoing draft lands in
+the same inbox it polls. Outbound mail is stamped with an `X-LI-Agent-Role`
+header and skipped, so the agent can never mistake its own draft for your
+approval. Verified in testing.
 
 ## 5. Fill in two blanks in `voice-profile.md`
 
-Section 6 needs your **brand colour (hex)** and **LinkedIn handle** before any
-image is generated. The agent will not invent them.
+Section 6 needs your **brand colour (hex)** before any image is generated. The
+agent will not invent it. Your handle is `roshini-cherian`
+(https://www.linkedin.com/in/roshini-cherian/).
 
 ## 6. Then run, in order
 

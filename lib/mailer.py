@@ -22,6 +22,10 @@ class MailError(RuntimeError):
     pass
 
 
+# Marks mail this agent sent, so it never reads its own draft as an approval.
+AGENT_HEADER = "X-LI-Agent-Role"
+
+
 # --------------------------------------------------------------- sending
 
 def send(subject: str, html_body: str, text_body: str,
@@ -34,6 +38,10 @@ def send(subject: str, html_body: str, text_body: str,
     msg["Subject"] = subject
     msg["From"] = from_addr
     msg["To"] = to_addr
+    # When the agent mails itself (APPROVAL_FROM == APPROVAL_EMAIL), its own
+    # outgoing mail lands in the inbox it polls, carrying the same subject
+    # token. This header lets fetch_replies tell its own voice from hers.
+    msg[AGENT_HEADER] = "outbound"
     msg.set_content(text_body)
     msg.add_alternative(html_body, subtype="html")
 
@@ -198,6 +206,9 @@ def fetch_replies(subject_token: str, *, unseen_only: bool = True) -> list[Reply
                 msg = email.message_from_bytes(msg_data[0][1])
                 subject = _decode(msg.get("Subject"))
                 if subject_token not in subject:
+                    continue
+                # Never treat our own outbound mail as a reply.
+                if msg.get(AGENT_HEADER):
                     continue
 
                 envelope_sender = parseaddr(msg.get("Return-Path") or msg.get("From") or "")[1].lower()
