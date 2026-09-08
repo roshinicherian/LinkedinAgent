@@ -1,0 +1,21 @@
+{
+  "run_id": "02",
+  "date": "2026-09-10",
+  "topic": "",
+  "pillar": "1 — AI in marketing practice",
+  "working_angle": "Briefing AI on technical B2B copy when the buyer knows the product better than the writer",
+  "scheduled_human": "Thu 10 Sept 07:45 AEST",
+  "scheduled_iso": "2026-09-09T21:45:00Z",
+  "cutoff_human": "Thu 10 Sept 06:30 AEST",
+  "round": 1,
+  "image_line": "none",
+  "image_cost": "$0.00",
+  "allowed_personal_numbers": [],
+  "variants": [],
+  "sources": [],
+  "notes": [],
+  "approval_artifact_url": "https://claude.ai/code/artifact/c7ec189c-a1a3-4ea3-995b-8e94c48d87c3",
+  "approval_mode": "web",
+  "include_title": true,
+  "manifest_note": "Created by hand on 2026-09-09. Tuesday's routine published the input page but did not write or push this manifest, so the Wednesday routine had nothing to read approval_artifact_url from. Run 01 was a deleted test, so this run takes week 1's pillar and its 2026-09-10 publish date; the content plan's week 2 (Paid media & SEM, 2026-09-17) is unaffected."
+}
